@@ -7,11 +7,13 @@
   <meta name="description" content="Transform your master experience into a tailored, ATS-optimized resume for any job position and city using NVIDIA NIM AI." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- html2pdf for PDF export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/app.js" defer></script>
+  <script src="/static/ui_tests.js" defer></script>
 </head>
 <body>
   <canvas id="bg-canvas"></canvas>
@@ -272,6 +274,14 @@ The AI will:
             <button class="theme-btn" data-theme="minimal" title="Ghost Minimal" onclick="selectTheme(this)">
               <div class="theme-swatch minimal"></div>
               <span>Minimal</span>
+            </button>
+            <button class="theme-btn" data-theme="impact" title="Modern High-Impact" onclick="selectTheme(this)">
+              <div class="theme-swatch impact"></div>
+              <span>Impact</span>
+            </button>
+            <button class="theme-btn" data-theme="modernist" title="Clean Asymmetric" onclick="selectTheme(this)">
+              <div class="theme-swatch modernist"></div>
+              <span>Modernist</span>
             </button>
           </div>
 

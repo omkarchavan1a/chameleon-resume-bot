@@ -832,16 +832,24 @@ injectJDPills();
  */
 function downloadPDF() {
   // Capture content
-  const preview = document.getElementById('preview-content');
-  const name = document.getElementById('res-name')?.textContent || 'Resume';
+  const preview = document.getElementById('resume-preview');
+  const name = document.getElementById('res-name')?.textContent || 'Candidate';
   
   if (!preview) {
-    showToast('❌ Preview content not found.');
+    showToast('❌ Resume content not found.');
     return;
   }
 
-  // Create clean clone for PDF generation to avoid UI button issues
+  // Create clean clone for PDF generation
   const element = preview.cloneNode(true);
+  
+  // Ensure the theme class is present on the clone if it was on the original
+  element.className = preview.className;
+  
+  // Force background visibility and clean up for PDF
+  element.style.boxShadow = 'none';
+  element.style.margin = '0';
+  element.style.width = '100%';
   
   const opt = {
     margin: [0.5, 0.5],
