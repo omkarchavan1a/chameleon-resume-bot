@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chameleon Resume Bot — AI-Powered ATS Resume Generator</title>
+  <meta name="description" content="Transform your master experience into a tailored, ATS-optimized resume for any job position and city using NVIDIA NIM AI." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- html2pdf for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🦎</span>
+        <div>
+          <span class="logo-title">Chameleon Resume</span>
+          <span class="logo-sub">AI-Powered ATS Bot · Omkar IT Determination</span>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-nvidia"><span class="badge-dot"></span>NVIDIA NIM</span>
+        <span class="badge badge-model">Llama 3.3 70B</span>
+        <div id="health-indicator" class="health-dot loading" title="Checking API..."></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Layout ── -->
+  <main class="main-layout">
+
+    <!-- ════════════════════════ LEFT PANEL ════════════════════════ -->
+    <section class="panel panel-input">
+
+      <form id="resume-form" novalidate>
+
+        <!-- Step 0: Upload Resume -->
+        <div class="form-section pdf-upload-section">
+          <div class="section-label">
+            <span class="step-badge">🚀</span>
+            Quick Start: Import PDF
+            <span class="auto-loaded-badge">NEW</span>
+          </div>
+          <p class="section-desc">Upload your latest resume to automatically populate your master experience and skills.</p>
+          <div class="upload-container">
+            <input type="file" id="pdf-upload" accept=".pdf" style="display:none" />
+            <label for="pdf-upload" class="upload-box" id="upload-label">
+              <span class="upload-icon">📄</span>
+              <div class="upload-text">
+                <strong>Click to Upload Resume (PDF)</strong>
+                <span>or drag & drop here</span>
+              </div>
+            </label>
+            <div id="extraction-status" class="extraction-status hidden">
+              <div class="status-spinner"></div>
+              <span id="status-text">Processing your resume...</span>
+            </div>
+            <div id="upload-success" class="upload-success hidden">
+              <span class="success-icon">✅</span>
+              <div class="success-text">
+                <strong>Resume Imported!</strong>
+                <span id="file-name-display">resume.pdf</span>
+              </div>
+              <button type="button" class="btn-remove-upload" id="btn-remove-pdf">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Target Role -->
+        <div class="form-section">
+          <div class="section-label">
+            <span class="step-badge">1</span>
+            Target Position
+          </div>
+          <div class="form-group">
+            <label for="target-position">Job Title <span class="required">*</span></label>
+            <input type="text" id="target-position" placeholder="e.g., Senior Full-Stack Developer" required />
+          </div>
+          <div class="subsection-label">⚡ Quick Select</div>
+          <div class="city-pills role-pills">
+            <span class="pill" data-role="Senior Full-Stack Developer"        onclick="quickRole(this)">🚀 Full-Stack</span>
+            <span class="pill" data-role="AI/ML Engineer"                     onclick="quickRole(this)">🤖 AI/ML</span>
+            <span class="pill" data-role="AI Automation Consultant"           onclick="quickRole(this)">⚙️ AI Automation</span>
+            <span class="pill" data-role="Full-Stack AI Developer"            onclick="quickRole(this)">✨ Full-Stack AI</span>
+            <span class="pill" data-role="Backend Developer (Python)"         onclick="quickRole(this)">🐍 Python Backend</span>
+            <span class="pill" data-role="Frontend Developer (React/Next.js)" onclick="quickRole(this)">⚛️ Frontend</span>
+          </div>
+        </div>
+
+        <!-- Step 2: City -->
+        <div class="form-section">
+          <div class="section-label">
+            <span class="step-badge">2</span>
+            Target City
+          </div>
+          <div class="form-group">
+            <label for="target-city">City / Location <span class="required">*</span></label>
+            <div class="input-with-icon">
+              <input type="text" id="target-city" placeholder="e.g., Pune, Mumbai, Remote" required />
+              <span class="city-icon">🏙️</span>
+            </div>
+          </div>
+          <div class="subsection-label">🏙️ Quick Select</div>
+          <div class="city-pills">
+            <span class="pill" data-city="Bangalore">Bangalore</span>
+            <span class="pill" data-city="Pune">Pune</span>
+            <span class="pill" data-city="Mumbai">Mumbai</span>
+            <span class="pill" data-city="Hyderabad">Hyderabad</span>
+            <span class="pill" data-city="Delhi NCR">Delhi NCR</span>
+            <span class="pill" data-city="Chennai">Chennai</span>
+            <span class="pill" data-city="Remote">🌐 Remote</span>
+          </div>
+        </div>
+
+        <!-- Step 3: Job Description -->
+        <div class="form-section">
+          <div class="section-label">
+            <span class="step-badge">3</span>
+            Job Description
+            <span class="optional-badge">Optional — Boosts ATS</span>
+          </div>
+          <div class="subsection-label">📋 Load JD Template</div>
+          <div class="subsection-label">🔥 Software & Full-Stack</div>
+          <div id="jd-pills-it" class="jd-pills-row"></div>
+          
+          <div class="subsection-label">🤖 AI, ML & Data</div>
+          <div id="jd-pills-ai" class="jd-pills-row"></div>
+
+          <div class="subsection-label">☁️ DevOps & Backend</div>
+          <div id="jd-pills-backend" class="jd-pills-row"></div>
+
+          <div class="subsection-label">💼 Tech Leadership</div>
+          <div id="jd-pills-mgmt" class="jd-pills-row"></div>
+          <div class="form-group full">
+            <label for="job-description">
+              Paste JD or use template above
+              <span class="ats-boost">🎯 +ATS Score</span>
+            </label>
+            <textarea id="job-description" rows="7"
+              placeholder="Paste the full job description here, or click a template above.
+
+The AI will:
+✓ Extract ATS keywords employers scan for
+✓ Match your skills to required qualifications
+✓ Prioritize your most relevant experience
+✓ Inject buzzwords naturally into every section"></textarea>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="form-actions">
+          <button type="submit" id="generate-btn" class="btn-generate">
+            <span class="btn-icon">🦎</span>
+            <span class="btn-text">Generate Chameleon Resume</span>
+            <span class="btn-arrow">→</span>
+          </button>
+          <button type="button" id="clear-btn" class="btn-clear">Clear</button>
+        </div>
+
+
+        <div id="token-info" class="token-info hidden">
+          🔢 Tokens: <strong id="token-count">0</strong> &nbsp;·&nbsp; NVIDIA NIM · Llama 3.3 70B
+        </div>
+
+        <!-- Recent History Section -->
+        <div class="history-section" id="history-section">
+          <div class="section-label">
+            <span class="step-badge">📜</span>
+            Recent Generations
+          </div>
+          <div id="history-list" class="history-list">
+            <div class="history-empty">No recent resumes yet.</div>
+          </div>
+        </div>
+
+      </form>
+    </section>
+
+    <!-- ════════════════════════ RIGHT PANEL ════════════════════════ -->
+    <section class="panel panel-output">
+      <div class="panel-header">
+        <h2>📄 Generated Resume</h2>
+        <div class="output-actions" id="output-controls" style="display:none">
+          <button class="btn-action" onclick="copyMarkdown()">📋 Copy MD</button>
+          <button class="btn-action" onclick="copyPlainText()">📝 Copy Text</button>
+          <button class="btn-action btn-pdf" id="download-pdf-btn" onclick="downloadPDF()">
+            <span id="pdf-btn-label">⬇️ Download PDF</span>
+          </button>
+          <div class="view-toggle">
+            <button class="toggle-btn active" id="preview-btn" onclick="showPreview()">Preview</button>
+            <button class="toggle-btn" id="raw-btn" onclick="showRaw()">Markdown</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Idle -->
+      <div id="idle-state" class="idle-content">
+        <div class="idle-animation">
+          <div class="chameleon-big">🦎</div>
+          <div class="idle-particles">
+            <span>🐍 Python</span><span>⚛️ React</span><span>🤖 CrewAI</span>
+            <span>🔗 LangChain</span><span>☁️ AWS</span><span>🐳 Docker</span>
+          </div>
+        </div>
+        <h3>Ready to Transform!</h3>
+        <p>Pick a <strong>role</strong>, <strong>city</strong>, and optionally a <strong>JD template</strong> — then click Generate. Your full profile is pre-loaded.</p>
+        <div class="feature-cards">
+          <div class="fcard"><span>🎯</span><div>ATS Keyword Injection</div></div>
+          <div class="fcard"><span>📊</span><div>Quantifiable Bullets</div></div>
+          <div class="fcard"><span>🏙️</span><div>City-Specific Language</div></div>
+          <div class="fcard"><span>✏️</span><div>AI-Powered Edits</div></div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="loading-state" class="loading-content hidden">
+        <div class="loader-ring"></div>
+        <div class="loading-steps">
+          <div class="load-step active" id="step-analyze">🔍 Analyzing your master experience...</div>
+          <div class="load-step" id="step-tailor">✂️ Tailoring content for role...</div>
+          <div class="load-step" id="step-ats">🎯 Injecting ATS keywords from JD...</div>
+          <div class="load-step" id="step-format">✨ Polishing &amp; formatting output...</div>
+        </div>
+      </div>
+
+      <!-- Output -->
+      <div id="output-content" class="hidden">
+
+        <!-- ── Design & Templates Selector ── -->
+        <div class="design-templates-section">
+          <div class="section-header-row">
+            <div class="subsection-label">🎨 Resume Theme</div>
+            <div class="current-theme-label">Active: <span id="active-theme-name">Modern Professional</span></div>
+          </div>
+          <div class="theme-selector">
+            <button class="theme-btn active" data-theme="modern" title="Modern Professional" onclick="selectTheme(this)">
+              <div class="theme-swatch modern"></div>
+              <span>Modern</span>
+            </button>
+            <button class="theme-btn" data-theme="tech" title="Tech Minimal (Monospaced)" onclick="selectTheme(this)">
+              <div class="theme-swatch tech"></div>
+              <span>Tech</span>
+            </button>
+            <button class="theme-btn" data-theme="elegant" title="Classic Elite (Serif)" onclick="selectTheme(this)">
+              <div class="theme-swatch elegant"></div>
+              <span>Classic</span>
+            </button>
+            <button class="theme-btn" data-theme="bold" title="Creative Bold" onclick="selectTheme(this)">
+              <div class="theme-swatch bold"></div>
+              <span>Creative</span>
+            </button>
+            <button class="theme-btn" data-theme="startup" title="Startup Modern" onclick="selectTheme(this)">
+              <div class="theme-swatch startup"></div>
+              <span>Startup</span>
+            </button>
+            <button class="theme-btn" data-theme="executive" title="Executive Prof." onclick="selectTheme(this)">
+              <div class="theme-swatch executive"></div>
+              <span>Executive</span>
+            </button>
+            <button class="theme-btn" data-theme="academic" title="Academic CV" onclick="selectTheme(this)">
+              <div class="theme-swatch academic"></div>
+              <span>Academic</span>
+            </button>
+            <button class="theme-btn" data-theme="minimal" title="Ghost Minimal" onclick="selectTheme(this)">
+              <div class="theme-swatch minimal"></div>
+              <span>Minimal</span>
+            </button>
+          </div>
+
+          <!-- design-toolkit -->
+          <div class="design-toolkit" id="design-toolkit">
+            <div class="toolkit-grid">
+              <div class="tool-group">
+                <label>🎨 Accent Color</label>
+                <div class="color-presets">
+                  <div class="color-dot active" style="background:#3b82f6" data-color="#3b82f6" onclick="setAccent(this)"></div>
+                  <div class="color-dot" style="background:#22c55e" data-color="#22c55e" onclick="setAccent(this)"></div>
+                  <div class="color-dot" style="background:#ef4444" data-color="#ef4444" onclick="setAccent(this)"></div>
+                  <div class="color-dot" style="background:#8b5cf6" data-color="#8b5cf6" onclick="setAccent(this)"></div>
+                  <div class="color-dot" style="background:#f59e0b" data-color="#f59e0b" onclick="setAccent(this)"></div>
+                  <div class="color-dot" style="background:#000000" data-color="#000000" onclick="setAccent(this)"></div>
+                </div>
+              </div>
+              <div class="tool-group">
+                <label>📏 Font Size: <span id="val-font-size">10</span>pt</label>
+                <input type="range" id="slider-font-size" min="8" max="14" step="0.5" value="10" oninput="updateDesignSetting('font-size', this.value)" />
+              </div>
+              <div class="tool-group">
+                <label>↔️ Line Spacing: <span id="val-spacing">1.5</span></label>
+                <input type="range" id="slider-spacing" min="1" max="2" step="0.1" value="1.5" oninput="updateDesignSetting('spacing', this.value)" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resume preview / raw -->
+        <div id="resume-preview" class="resume-preview"></div>
+        <div id="resume-raw" class="resume-raw hidden">
+          <pre><code id="resume-raw-code"></code></pre>
+        </div>
+
+        <!-- ── Refine Panel ── -->
+        <div class="refine-panel" id="refine-panel">
+          <div class="refine-header" onclick="toggleRefine()">
+            <div class="refine-title">
+              <span>✏️</span>
+              <strong>Refine &amp; Edit Resume</strong>
+              <span class="refine-sub">Ask AI to make specific changes</span>
+            </div>
+            <span class="refine-chevron" id="refine-chevron">▼</span>
+          </div>
+
+          <div class="refine-body" id="refine-body">
+            <!-- Quick suggestion chips -->
+            <div class="subsection-label" style="margin-bottom:8px">⚡ Quick Edits</div>
+            <div class="refine-suggestions">
+              <button class="suggestion-chip" onclick="applySuggestion(this)">✂️ Make it more concise</button>
+              <button class="suggestion-chip" onclick="applySuggestion(this)">🤖 Add more AI/ML keywords</button>
+              <button class="suggestion-chip" onclick="applySuggestion(this)">💥 Strengthen impact bullets</button>
+              <button class="suggestion-chip" onclick="applySuggestion(this)">🎯 Improve ATS score</button>
+              <button class="suggestion-chip" onclick="applySuggestion(this)">📝 Make summary punchier</button>
+              <button class="suggestion-chip" onclick="applySuggestion(this)">🚀 Add leadership examples</button>
+              <button class="suggestion-chip" onclick="applySuggestion(this)">🌟 Highlight top 3 projects</button>
+              <button class="suggestion-chip" onclick="applySuggestion(this)">📊 Add more metrics / numbers</button>
+            </div>
+
+            <!-- Custom instruction -->
+            <div class="form-group full" style="margin-top:12px">
+              <label for="refine-instructions">
+                Custom Edit Instructions
+                <span class="char-counter" id="refine-counter">0 chars</span>
+              </label>
+              <textarea id="refine-instructions" rows="3"
+                placeholder="Type any custom change... e.g.:
+• 'Add a Skills section row for TensorFlow and PyTorch'
+• 'Rewrite the summary to focus on startup experience'
+• 'Replace all bullet points with stronger action verbs'"></textarea>
+            </div>
+
+            <!-- Refine submit -->
+            <div class="refine-actions">
+              <button type="button" id="refine-btn" class="btn-refine" onclick="refineResume()">
+                <span id="refine-btn-icon">✏️</span>
+                <span id="refine-btn-text">Apply Changes</span>
+              </button>
+              <button type="button" class="btn-undo" id="undo-btn" onclick="undoRefine()" style="display:none">
+                ↩ Undo
+              </button>
+            </div>
+
+            <div id="refine-token-info" class="token-info hidden" style="margin-top:8px">
+              ✏️ Refinement tokens: <strong id="refine-token-count">0</strong>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /output-content -->
+
+    </section>
+  </main>
+
+  <div id="print-area" class="print-area"></div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    function quickRole(el) {
+      document.querySelectorAll('.role-pills .pill').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      const role = el.dataset.role;
+      document.getElementById('target-position').value = role;
+      if (typeof JD_TEMPLATES !== 'undefined' && JD_TEMPLATES[role]) {
+        document.getElementById('job-description').value = JD_TEMPLATES[role];
+        document.querySelectorAll('.jd-pill').forEach(p => {
+          p.classList.toggle('active', p.dataset.role === role);
+        });
+        showToast(`📋 JD loaded: ${role}`);
+      }
+    }
+  </script>
+</body>
+</html>
