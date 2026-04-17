@@ -23,10 +23,13 @@ class Database:
                 print("[ERROR] MONGODB_URI not found in environment")
                 return
             
+            import certifi
             cls.client = AsyncIOMotorClient(
                 MONGODB_URI,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=5000
+                serverSelectionTimeoutMS=10000,
+                connectTimeoutMS=10000,
+                tlsCAFile=certifi.where(),
+                tlsAllowInvalidCertificates=True
             )
             try:
                 # The ping command is cheap and does not require auth
