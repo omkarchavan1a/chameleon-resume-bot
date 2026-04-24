@@ -32,6 +32,7 @@
         <span class="badge badge-nvidia"><span class="badge-dot"></span>NVIDIA NIM</span>
         <span class="badge badge-model">Llama 3.3 70B</span>
         <div id="health-indicator" class="health-dot loading" title="Checking API..."></div>
+        <button onclick="changeUser()" style="background:transparent;border:1px solid rgba(99,173,255,0.3);color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.75rem;cursor:pointer;margin-left:8px;">Change User</button>
       </div>
     </div>
   </header>
@@ -170,6 +171,18 @@ The AI will:
 
         <div id="token-info" class="token-info hidden">
           🔢 Tokens: <strong id="token-count">0</strong> &nbsp;·&nbsp; NVIDIA NIM · Llama 3.3 70B
+        </div>
+
+        <!-- Templates Section -->
+        <div class="templates-section" id="templates-section">
+          <div class="section-label">
+            <span class="step-badge">🎨</span>
+            Generated Resume Templates
+          </div>
+          <p class="templates-desc">Choose from your generated resumes. Select any resume to download or view. Each unique job role shows the latest generated version.</p>
+          <div id="templates-grid" class="templates-grid">
+            <!-- Templates will be loaded dynamically -->
+          </div>
         </div>
 
         <!-- Recent History Section -->

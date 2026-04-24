@@ -6,6 +6,19 @@ const API_BASE = '';
 let historyData = []; // Local cache of recent generations
 let currentTheme = 'modern'; // Default theme
 
+// ═══════════════════════════════════════════════════════════════════════════════
+//  USER AUTH CHECK — Redirect to landing if not registered
+// ═══════════════════════════════════════════════════════════════════════════════
+(function checkUserAuth() {
+  const userEmail = localStorage.getItem('user_email');
+  if (!userEmail) {
+    // Not registered, redirect to landing page
+    window.location.href = '/';
+    return;
+  }
+  // User is registered, proceed with app
+})();
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  MASTER EXPERIENCE DATA — Full profile for Omkar (Omkar IT Determination)
 //  Edit this object to keep your profile up to date
@@ -659,7 +672,7 @@ document.getElementById('resume-form').addEventListener('submit', async (e) => {
     const res = await fetch(`${API_BASE}/api/generate-resume`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ master_data: master, target_position: position, target_city: city, job_description: jd, theme: currentTheme })
+      body: JSON.stringify({ master_data: master, target_position: position, target_city: city, job_description: jd, theme: currentTheme, user_email: localStorage.getItem('user_email') || '' })
     });
 
     const data = await res.json();
@@ -711,7 +724,8 @@ async function refineResume() {
         instructions: instr,
         target_position: document.getElementById('target-position').value || 'Resume Update',
         target_city: document.getElementById('target-city').value || '',
-        theme: currentTheme
+        theme: currentTheme,
+        user_email: localStorage.getItem('user_email') || ''
       })
     });
 
@@ -826,6 +840,189 @@ function showToast(msg) {
 // Initial calls
 fetchHistory();
 injectJDPills();
+loadTemplates();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TEMPLATES SECTION - Shows Generated Resume Data
+// ═══════════════════════════════════════════════════════════════════════════════
+async function loadTemplates() {
+  try {
+    // Fetch actual generated resumes from history API
+    const res = await fetch(`${API_BASE}/api/history`);
+    if (!res.ok) throw new Error('Failed to load templates');
+    const data = await res.json();
+    renderGeneratedResumes(data);
+  } catch (err) {
+    console.error('Templates Error:', err);
+    // Show helpful message when backend is not available
+    document.getElementById('templates-grid').innerHTML = `
+      <div class="history-empty" style="grid-column: 1 / -1;">
+        <p>⚠️ Backend not running</p>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem;">
+          Templates feature requires the FastAPI backend.<br>
+          Run: <code>python backend/main.py</code>
+        </p>
+      </div>
+    `;
+  }
+}
+
+function renderGeneratedResumes(resumes) {
+  const grid = document.getElementById('templates-grid');
+  if (!resumes || resumes.length === 0) {
+    grid.innerHTML = '<div class="history-empty">No generated resumes yet. Create some resumes first!</div>';
+    return;
+  }
+
+  // Get unique job roles and their latest resume
+  const uniqueRoles = {};
+  resumes.forEach(r => {
+    const role = r.target_position || 'Unknown Role';
+    if (!uniqueRoles[role] || new Date(r.timestamp) > new Date(uniqueRoles[role].timestamp)) {
+      uniqueRoles[role] = r;
+    }
+  });
+
+  // Role icons and colors mapping
+  const roleStyles = {
+    'Full-Stack': { icon: '⚛️', color: '#61dafb' },
+    'AI': { icon: '🤖', color: '#ff6b6b' },
+    'ML': { icon: '🧠', color: '#ff6b6b' },
+    'Data': { icon: '📊', color: '#4ecdc4' },
+    'DevOps': { icon: '⚙️', color: '#f7b731' },
+    'Product': { icon: '📱', color: '#5f27cd' },
+    'UX': { icon: '🎨', color: '#e84393' },
+    'Backend': { icon: '🐍', color: '#00d2d3' },
+    'Frontend': { icon: '💻', color: '#ff9f43' },
+    'Cloud': { icon: '☁️', color: '#54a0ff' },
+    'Security': { icon: '🔒', color: '#10ac84' },
+    'Software': { icon: '💻', color: '#a855f7' },
+    'Engineer': { icon: '⚡', color: '#f59e0b' },
+    'Developer': { icon: '👨‍💻', color: '#3b82f6' }
+  };
+
+  function getRoleStyle(role) {
+    for (const [key, style] of Object.entries(roleStyles)) {
+      if (role.toLowerCase().includes(key.toLowerCase())) {
+        return style;
+      }
+    }
+    return { icon: '📄', color: '#4f9cff' };
+  }
+
+  const uniqueResumeList = Object.values(uniqueRoles).slice(0, 10); // Show max 10 unique roles
+
+  grid.innerHTML = uniqueResumeList.map((r, index) => {
+    const role = r.target_position || 'Resume';
+    const city = r.target_city || 'Unknown';
+    const date = new Date(r.timestamp).toLocaleDateString();
+    const preview = r.resume_markdown ? r.resume_markdown.substring(0, 150) + '...' : 'No preview available';
+    const style = getRoleStyle(role);
+    const id = r._id || index;
+    
+    return `
+    <div class="template-card" data-id="${id}">
+      <div class="template-icon">${style.icon}</div>
+      <div class="template-title" style="color: ${style.color}">${role}</div>
+      <div class="template-meta">📍 ${city} • 📅 ${date}</div>
+      <div class="template-preview">${preview.replace(/[#*`]/g, '').substring(0, 100)}...</div>
+      <div class="template-actions">
+        <button class="template-btn" onclick="downloadResumeMD('${id}', '${role.replace(/'/g, "\\'")}', ${JSON.stringify(r.resume_markdown).replace(/'/g, "\\'")})">
+          📄 MD
+        </button>
+        <button class="template-btn pdf-btn" id="pdf-btn-${id}" onclick="downloadResumePDF('${id}', '${role.replace(/'/g, "\\'")}', ${JSON.stringify(r.resume_markdown).replace(/'/g, "\\'")})">
+          📄 PDF
+        </button>
+        <button class="template-btn" onclick="viewResume('${id}', ${JSON.stringify(r.resume_markdown).replace(/'/g, "\\'")})">
+          👁️ View
+        </button>
+      </div>
+    </div>
+  `}).join('');
+}
+
+// Download generated resume as Markdown
+function downloadResumeMD(id, title, content) {
+  try {
+    const safeTitle = title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeTitle}-resume.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast(`✅ Downloaded ${title} as Markdown!`);
+  } catch (err) {
+    showToast(`❌ Failed to download: ${err.message}`);
+  }
+}
+
+// Download generated resume as PDF
+async function downloadResumePDF(id, title, content) {
+  const btn = document.getElementById(`pdf-btn-${id}`);
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span class="template-loading"></span>';
+  btn.disabled = true;
+
+  try {
+    const safeTitle = title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    
+    // Generate PDF
+    const pdfRes = await fetch(`${API_BASE}/api/generate-pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        markdown: content,
+        filename: `${safeTitle}-resume.pdf`
+      })
+    });
+    
+    if (!pdfRes.ok) throw new Error('PDF generation failed');
+    
+    // Download PDF
+    const blob = await pdfRes.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeTitle}-resume.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast(`✅ Downloaded ${title} as PDF!`);
+  } catch (err) {
+    showToast(`❌ Failed to generate PDF: ${err.message}`);
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
+// View generated resume in preview
+function viewResume(id, content) {
+  currentMarkdown = content;
+  renderResume(content);
+  showToast('✅ Loaded resume into preview!');
+  
+  // Scroll to preview
+  document.querySelector('.panel-output').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  USER MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+function changeUser() {
+  if (confirm('Are you sure you want to switch to a different user? Your current session data will be cleared.')) {
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('user_phone');
+    window.location.href = '/';
+  }
+}
 
 /**
  * Download the current resume as a PDF using html2pdf.js
