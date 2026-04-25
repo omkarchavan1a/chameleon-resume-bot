@@ -83,6 +83,21 @@ p {
 }
 """
 
+def ensure_playwright_browsers():
+    """Ensure Playwright browsers are installed, especially for Streamlit Cloud."""
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            browser.close()
+    except Exception:
+        import subprocess
+        try:
+            st.info("Playwright browser binaries missing. Installing Chromium... this may take a moment.")
+            subprocess.run(["playwright", "install", "chromium"], check=True)
+            st.success("Chromium installed successfully!")
+        except Exception as e:
+            st.error(f"Failed to install Playwright browsers: {e}")
+
 def generate_pdf_local(markdown_content):
     """Generate PDF using available method (WeasyPrint or markdown_pdf)."""
     if PDF_METHOD is None:
@@ -231,6 +246,7 @@ def generate_html_pdf(markdown_content, template_path=None):
         data = engine.parse_markdown(markdown_content)
         html_rendered = engine.render_html(template_path, data)
         
+        ensure_playwright_browsers()
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page()
