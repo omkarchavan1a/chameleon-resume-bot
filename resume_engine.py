@@ -123,183 +123,157 @@ class ResumeEngine:
         with open(template_path, 'r', encoding='utf-8') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
             
-        # 1. Update Name and Title
+        # 1. Basic Info (Highest Precision)
         name_elem = soup.find(class_='name')
-        if name_elem: name_elem.string = data["name"]
+        if name_elem: 
+            name_elem.clear()
+            name_elem.string = data["name"]
         
         title_elem = soup.find(class_='title')
-        if title_elem: title_elem.string = data["title"]
+        if title_elem: 
+            title_elem.clear()
+            title_elem.string = data["title"]
         
-        # 2. Update Contact
+        # 2. Contact Info
         contact_container = soup.find(class_='contact')
         if contact_container:
-            links = contact_container.find_all('a')
-            for link in links:
+            # Update links
+            for link in contact_container.find_all('a'):
                 href = link.get('href', '')
-                if 'mailto' in href and data["contact"]["email"]:
-                    link.string = data["contact"]["email"]
-                    link['href'] = f"mailto:{data['contact']['email']}"
-                elif ('linkedin' in href or 'linkedin' in link.text.lower()) and data["contact"]["linkedin"]:
-                    link['href'] = data["contact"]["linkedin"]
-                elif ('github' in href or 'github' in link.text.lower()) and data["contact"]["github"]:
-                    link['href'] = data["contact"]["github"]
+                if 'mailto' in href or (link.string and '@' in link.string):
+                    if data["contact"]["email"]:
+                        link.string = data["contact"]["email"]
+                        link['href'] = f"mailto:{data['contact']['email']}"
+                elif 'linkedin' in href or 'linkedin' in (link.string or '').lower():
+                    if data["contact"]["linkedin"]:
+                        link['href'] = data["contact"]["linkedin"]
+                elif 'github' in href or 'github' in (link.string or '').lower():
+                    if data["contact"]["github"]:
+                        link['href'] = data["contact"]["github"]
             
-            # Update phone if present as span or text
-            spans = contact_container.find_all('span')
-            for span in spans:
-                if re.search(r'\d', span.text) and data["contact"]["phone"]:
-                    span.string = data["contact"]["phone"]
+            # Update phone numbers in spans/divs
+            for item in contact_container.find_all(['span', 'div']):
+                if item.string and re.search(r'\d{5}', item.string):
+                    if data["contact"]["phone"]:
+                        item.string = data["contact"]["phone"]
 
-        # 3. Update Summary
-        summary_header = soup.find(lambda tag: tag.name in ['div', 'span', 'h2', 'h3'] and 'summary' in tag.text.lower())
-        summary_container = soup.find(class_='summary') or soup.find(class_='summary-text')
-        if not summary_container and summary_header:
-            summary_container = summary_header.find_next(['div', 'p'])
+        # 3. Summary Section
+        summary_container = soup.find(class_=['summary', 'summary-text', 'about-text'])
+        if not summary_container:
+            # Fallback: search for header with "summary" or "about"
+            header = soup.find(lambda tag: tag.name in ['h1', 'h2', 'h3', 'div'] and 
+                              any(x in tag.text.lower() for x in ['summary', 'about', 'profile']))
+            if header:
+                summary_container = header.find_next(['p', 'div'])
         
         if summary_container:
-            if data["summary"]:
-                text_elem = summary_container.find(class_='summary-text') or summary_container
-                if text_elem: text_elem.string = data["summary"]
-            else:
-                outer_summary = summary_container.find_parent(['section', 'div'], class_=['section', 'card']) or summary_container
-                outer_summary.decompose()
+            summary_container.clear()
+            summary_container.string = data.get("summary", "")
 
-        # 4. Update Experience
-        exp_header = soup.find(lambda tag: tag.name in ['div', 'span', 'h2', 'h3'] and 'experience' in tag.text.lower())
-        if exp_header:
-            container = exp_header.find_parent(['section', 'div', 'main'], class_=['section', 'main', 'card', 'content-section'])
-            if not container:
-                container = exp_header.find_next(['div', 'section'])
+        # 4. Experience Section
+        exp_container = soup.find(class_=['experience-list', 'experience-container', 'work-experience'])
+        if not exp_container:
+            header = soup.find(lambda tag: tag.name in ['h1', 'h2', 'h3', 'div'] and 
+                              any(x in tag.text.lower() for x in ['experience', 'work history']))
+            if header:
+                exp_container = header.find_parent(['section', 'div'], class_=['section', 'card']) or header.find_next(['div', 'section'])
+
+        if exp_container and data.get("experience"):
+            template = exp_container.find(class_=['entry', 'experience-item'])
+            if template:
+                # Remove existing entries
+                for entry in exp_container.find_all(class_=['entry', 'experience-item']):
+                    entry.decompose()
                 
-            if data["experience"] and container:
-                entry_template = container.find(class_=['entry', 'entry-item'])
-                if entry_template:
-                    entries = container.find_all(class_=['entry', 'entry-item'])
-                    for e in entries: e.decompose()
+                for item in data["experience"]:
+                    new_entry = BeautifulSoup(str(template), 'html.parser').find()
                     
-                    for item in data["experience"]:
-                        new_entry = BeautifulSoup(str(entry_template), 'html.parser').find()
-                        
-                        pos = new_entry.find(class_=['position', 'job-title'])
-                        if pos: pos.string = item["role"]
-                        
-                        org = new_entry.find(class_=['organization', 'company', 'employer'])
-                        if org: org.string = item["company"]
-                        
-                        date = new_entry.find(class_=['date', 'period'])
-                        if date: date.string = item["date"]
-                        
-                        ul = new_entry.find('ul')
-                        if ul:
-                            ul.clear()
-                            for h in item["highlights"]:
-                                li = soup.new_tag('li')
-                                li.string = h
-                                ul.append(li)
-                        
-                        container.append(new_entry)
-            elif container:
-                outer_exp = container.find_parent(['section', 'div'], class_=['section', 'card']) or container
-                outer_exp.decompose()
-
-        # 5. Update Education
-        edu_header = soup.find(lambda tag: tag.name in ['div', 'span', 'h2', 'h3'] and 'education' in tag.text.lower())
-        if edu_header:
-            container = edu_header.find_parent(['section', 'div', 'main'], class_=['section', 'main', 'card', 'content-section'])
-            if not container:
-                container = edu_header.find_next(['div', 'section'])
-                
-            if data["education"] and container:
-                entry_template = container.find(class_=['entry', 'entry-item'])
-                if entry_template:
-                    entries = container.find_all(class_=['entry', 'entry-item'])
-                    for e in entries: e.decompose()
+                    role = new_entry.find(class_=['position', 'role', 'job-title'])
+                    if role: role.string = item["role"]
                     
-                    for item in data["education"]:
-                        new_entry = BeautifulSoup(str(entry_template), 'html.parser').find()
-                        
-                        degree = new_entry.find(class_=['position', 'degree', 'study-program'])
-                        if degree: degree.string = item["degree"]
-                        
-                        desc = new_entry.find(class_=['entry-description', 'description', 'edu-details'])
-                        if desc: desc.string = item["details"]
-                        
-                        container.append(new_entry)
-            elif container:
-                outer_edu = container.find_parent(['section', 'div'], class_=['section', 'card']) or container
-                outer_edu.decompose()
+                    company = new_entry.find(class_=['organization', 'company', 'employer'])
+                    if company: company.string = item["company"]
+                    
+                    date = new_entry.find(class_=['date', 'period'])
+                    if date: date.string = item["date"]
+                    
+                    desc_list = new_entry.find('ul')
+                    if desc_list:
+                        desc_list.clear()
+                        for highlight in item["highlights"]:
+                            li = soup.new_tag('li')
+                            li.string = highlight
+                            desc_list.append(li)
+                    
+                    exp_container.append(new_entry)
 
-        # 6. Update Skills
-        skills_header = soup.find(lambda tag: tag.name in ['div', 'span', 'h2', 'h3'] and 'skills' in tag.text.lower())
-        if skills_header:
-            skills_container = skills_header.find_parent(['section', 'div'], class_=['section', 'card'])
-            if not skills_container:
-                skills_container = skills_header.find_next(['div', 'section'])
+        # 5. Education Section
+        edu_container = soup.find(class_=['education-list', 'education-container'])
+        if not edu_container:
+            header = soup.find(lambda tag: tag.name in ['h1', 'h2', 'h3', 'div'] and 'education' in tag.text.lower())
+            if header:
+                edu_container = header.find_parent(['section', 'div'], class_=['section', 'card']) or header.find_next(['div', 'section'])
+
+        if edu_container and data.get("education"):
+            template = edu_container.find(class_=['entry', 'education-item'])
+            if template:
+                for entry in edu_container.find_all(class_=['entry', 'education-item']):
+                    entry.decompose()
                 
-            if data["skills"] and skills_container:
-                inner_container = skills_container.find(class_=['skills-grid', 'skills-container', 'skills-list', 'skill-tags']) or skills_container
-                
-                # Handle skill-tag pattern
-                if inner_container.find(class_=['skill-tag', 'skill-item']):
-                    tags = inner_container.find_all(class_=['skill-tag', 'skill-item'])
-                    for t in tags: t.decompose()
-                    for s in data["skills"]:
-                        new_tag = soup.new_tag('span', attrs={'class': 'skill-tag'})
-                        new_tag.string = s
-                        inner_container.append(new_tag)
+                for item in data["education"]:
+                    new_entry = BeautifulSoup(str(template), 'html.parser').find()
+                    degree = new_entry.find(class_=['position', 'degree'])
+                    if degree: degree.string = item["degree"]
+                    details = new_entry.find(class_=['organization', 'details', 'edu-details'])
+                    if details: details.string = item.get("details", "")
+                    edu_container.append(new_entry)
+
+        # 6. Skills Section (The tricky one)
+        skills_container = soup.find(class_=['skills-grid', 'skills-list', 'skills-container', 'skill-tags'])
+        if not skills_container:
+            header = soup.find(lambda tag: tag.name in ['h1', 'h2', 'h3', 'div'] and 'skills' in tag.text.lower())
+            if header:
+                # Find the actual grid/list within the section
+                section = header.find_parent(['section', 'div'], class_=['section', 'card'])
+                if section:
+                    skills_container = section.find(class_=['skills-grid', 'skills-list', 'skills-container', 'skill-tags']) or section
                 else:
-                    inner_container.clear()
-                    for s in data["skills"]:
-                        span = soup.new_tag('span', attrs={'class': 'skill-tag'})
-                        span.string = s
-                        inner_container.append(span)
-            elif skills_container:
-                skills_container.decompose()
+                    skills_container = header.find_next(['div', 'ul'])
 
-        # 7. Update Projects
-        proj_header = soup.find(lambda tag: tag.name in ['div', 'span', 'h2', 'h3'] and 'project' in tag.text.lower())
-        if proj_header:
-            container = proj_header.find_parent(['section', 'div', 'main'], class_=['section', 'main', 'card', 'content-section'])
-            if not container:
-                container = proj_header.find_next(['div', 'section'])
+        if skills_container and data.get("skills"):
+            # Try to find a template for a single skill
+            item_template = skills_container.find(class_=['skill-tag', 'skill-item', 'skill-box'])
+            if item_template:
+                # Clean up existing items
+                for item in skills_container.find_all(class_=['skill-tag', 'skill-item', 'skill-box']):
+                    item.decompose()
                 
-            if data["projects"] and container:
-                entry_template = container.find(class_=['entry', 'entry-item'])
-                if entry_template:
-                    entries = container.find_all(class_=['entry', 'entry-item'])
-                    for e in entries: e.decompose()
-                    for item in data["projects"]:
-                        new_entry = BeautifulSoup(str(entry_template), 'html.parser').find()
-                        name = new_entry.find(class_=['position', 'name', 'project-title']) or new_entry.find('span')
-                        if name: name.string = item["name"]
-                        desc = new_entry.find(class_=['entry-description', 'description', 'project-details'])
-                        if desc: desc.string = item["details"]
-                        container.append(new_entry)
-            elif container:
-                outer_proj = container.find_parent(['section', 'div'], class_=['section', 'card']) or container
-                outer_proj.decompose()
-
-        # 8. Update Awards/Certifications
-        award_header = soup.find(lambda tag: tag.name in ['div', 'span', 'h2', 'h3'] and any(x in tag.text.lower() for x in ['award', 'certif', 'honor']))
-        if award_header:
-            container = award_header.find_parent(['section', 'div', 'main'], class_=['section', 'main', 'card', 'content-section'])
-            if not container:
-                container = award_header.find_next(['div', 'section'])
-                
-            if data["awards"] and container:
-                entry_template = container.find(class_=['entry', 'entry-item'])
-                if entry_template:
-                    entries = container.find_all(class_=['entry', 'entry-item'])
-                    for e in entries: e.decompose()
-                    for item in data["awards"]:
-                        new_entry = BeautifulSoup(str(entry_template), 'html.parser').find()
-                        name = new_entry.find(class_=['position', 'name', 'award-title']) or new_entry.find('span')
-                        if name: name.string = item["name"]
-                        desc = new_entry.find(class_=['entry-description', 'description', 'award-details'])
-                        if desc: desc.string = item["details"]
-                        container.append(new_entry)
-            elif container:
-                outer_award = container.find_parent(['section', 'div'], class_=['section', 'card']) or container
-                outer_award.decompose()
+                for skill in data["skills"]:
+                    new_item = BeautifulSoup(str(item_template), 'html.parser').find()
+                    if not new_item:
+                        continue
+                        
+                    classes = new_item.get('class', [])
+                    if not isinstance(classes, list):
+                        classes = [classes] if classes else []
+                        
+                    # If it's a simple tag, set string
+                    if 'skill-tag' in classes or 'skill-item' in classes:
+                        new_item.string = skill
+                    else:
+                        # Find title or list within box
+                        title = new_item.find(class_=['skill-title', 'skill-label'])
+                        if title: 
+                            title.string = skill
+                        else:
+                            new_item.string = skill
+                    skills_container.append(new_item)
+            else:
+                # Fallback: simple bullet list or clearing
+                skills_container.clear()
+                for skill in data["skills"]:
+                    span = soup.new_tag('span', attrs={'class': 'skill-tag'})
+                    span.string = skill
+                    skills_container.append(span)
 
         return str(soup)

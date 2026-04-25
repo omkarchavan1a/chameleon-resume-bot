@@ -20,7 +20,7 @@ from database import Database, get_db
 from typing import Optional, List
 import uuid
 import markdown
-from weasyprint import HTML, CSS
+from playwright.sync_api import sync_playwright
 
 # Load external configuration from .env file
 load_dotenv()
@@ -1405,8 +1405,13 @@ def markdown_to_pdf(markdown_content: str) -> bytes:
     """
     
     # Generate PDF
-    pdf_bytes = HTML(string=full_html).write_pdf()
-    return pdf_bytes
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.set_content(full_html)
+        pdf_bytes = page.pdf(format="A4", print_background=True)
+        browser.close()
+        return pdf_bytes
 
 
 # ─── Templates API Endpoints ──────────────────────────────────────────────────

@@ -14,13 +14,12 @@ from openai import OpenAI
 PDF_METHOD = None
 try:
     import markdown as md_parser
-    from weasyprint import HTML, CSS
-    PDF_METHOD = "weasyprint"
-except (ImportError, OSError) as e:
-    # OSError happens on Windows when GTK libraries are missing
+    from playwright.sync_api import sync_playwright
+    PDF_METHOD = "playwright"
+except ImportError as e:
     pass
 
-# Fallback to fpdf2 if WeasyPrint not available or failed
+# Fallback to fpdf2 if Playwright not available
 if PDF_METHOD is None:
     try:
         from fpdf import FPDF
@@ -29,7 +28,7 @@ if PDF_METHOD is None:
         pass
 
 if PDF_METHOD is None:
-    st.warning("⚠️ PDF generation not available. Install dependencies:\n\n`pip install weasyprint markdown`\nor\n`pip install fpdf2`")
+    st.warning("⚠️ PDF generation not available. Install dependencies:\n\n`pip install playwright markdown`\nor\n`pip install fpdf2`")
 
 # Custom Imports
 from styles import inject_styles, get_theme_css, get_industry_badge_css
@@ -90,8 +89,8 @@ def generate_pdf_local(markdown_content):
         return None
     
     try:
-        if PDF_METHOD == "weasyprint":
-            # Use WeasyPrint
+        if PDF_METHOD == "playwright":
+            # Use Playwright for high-fidelity conversion
             html_content = md_parser.markdown(markdown_content, extensions=['extra'])
             full_html = f"""
             <!DOCTYPE html>
@@ -105,8 +104,13 @@ def generate_pdf_local(markdown_content):
             </body>
             </html>
             """
-            pdf_bytes = HTML(string=full_html).write_pdf()
-            return pdf_bytes
+            with sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page()
+                page.set_content(full_html)
+                pdf_bytes = page.pdf(format="A4", print_background=True)
+                browser.close()
+                return pdf_bytes
             
         elif PDF_METHOD == "fpdf":
             # Use fpdf2 fallback - pure Python, no external dependencies
@@ -175,8 +179,8 @@ def generate_pdf_local(markdown_content):
 
 def generate_themed_pdf(markdown_content, theme_name='modern'):
     """Generate PDF with theme-specific styling."""
-    if PDF_METHOD == "weasyprint":
-        # Use WeasyPrint with theme CSS
+    if PDF_METHOD == "playwright":
+        # Use Playwright with theme CSS
         try:
             html_content = md_parser.markdown(markdown_content, extensions=['extra'])
             theme_css = get_theme_css(theme_name)
@@ -196,8 +200,13 @@ def generate_themed_pdf(markdown_content, theme_name='modern'):
             </body>
             </html>
             """
-            pdf_bytes = HTML(string=full_html).write_pdf()
-            return pdf_bytes
+            with sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page()
+                page.set_content(full_html)
+                pdf_bytes = page.pdf(format="A4", print_background=True)
+                browser.close()
+                return pdf_bytes
         except Exception as e:
             st.error(f"Themed PDF generation failed: {e}")
             # Fallback to local
@@ -207,20 +216,32 @@ def generate_themed_pdf(markdown_content, theme_name='modern'):
         return generate_pdf_local(markdown_content)
 
 
-def generate_html_pdf(markdown_content, template_id='resume-1-minimalist'):
-    """Generate PDF using HTML templates and ResumeEngine."""
-    if PDF_METHOD != "weasyprint":
-        st.error("WeasyPrint is required for high-fidelity HTML templates. Using fallback.")
+def generate_html_pdf(markdown_content, template_path=None):
+    """Generate PDF using HTML templates and ResumeEngine via Playwright."""
+    if PDF_METHOD != "playwright":
+        st.error("Playwright is required for high-fidelity HTML templates. Using basic fallback.")
         return generate_pdf_local(markdown_content)
         
     try:
+        if not template_path:
+            # Default to first available template if none provided
+            template_path = list(HTML_TEMPLATES.values())[0]
+            
         engine = ResumeEngine()
         data = engine.parse_markdown(markdown_content)
-        html_rendered = engine.render_html(template_id, data)
-        pdf_bytes = HTML(string=html_rendered).write_pdf()
-        return pdf_bytes
+        html_rendered = engine.render_html(template_path, data)
+        
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page()
+            page.set_content(html_rendered)
+            # Ensure images and styles are loaded
+            page.wait_for_load_state("networkidle")
+            pdf_bytes = page.pdf(format="A4", print_background=True, margin={"top": "0", "bottom": "0", "left": "0", "right": "0"})
+            browser.close()
+            return pdf_bytes
     except Exception as e:
-        st.error(f"HTML Template PDF generation failed: {e}")
+        st.error(f"High-Fidelity PDF generation failed: {e}")
         return generate_pdf_local(markdown_content)
 
 
@@ -611,6 +632,10 @@ else:
                     f"<span style='font-size: 4rem; display: block; margin-bottom: 1rem;'>📄</span>Prepare your inputs to see the magic.</div>", 
                     unsafe_allow_html=True
                 )
+                if st.button("✨ Load Sample Data to Preview Templates"):
+                    st.session_state.master_data = "# Sarah Chen\nFull-Stack Engineer | sarah@example.com\n\n## Summary\nExpert in React and Node.js with 5 years experience.\n\n## Experience\n### Senior Engineer | Tech Corp\n2020-Present\n- Led frontend team of 5."
+                    st.session_state.generated_resume = st.session_state.master_data
+                    st.rerun()
             else:
                 # Preview mode selection
                 p_tabs = st.tabs(["✨ Preview", "🎨 Design Gallery", "📝 Source"])
@@ -634,7 +659,7 @@ else:
                         try:
                             engine = ResumeEngine()
                             data = engine.parse_markdown(st.session_state.generated_resume)
-                            t_id = st.session_state.get('selected_template', 'Minimalist Professional')
+                            t_id = st.session_state.get('selected_template', 'Minimalist')
                             t_path = HTML_TEMPLATES.get(t_id)
                             html_rendered = engine.render_html(t_path, data)
                             
@@ -658,34 +683,54 @@ else:
                             st.error(f"Render Error: {e}")
 
                 with p_tabs[1]:
-                    st.markdown("### Premium Gallery")
-                    st.markdown('<p style="color: #94a3b8; margin-bottom: 20px;">Download your resume in any of our 10 professional designs.</p>', unsafe_allow_html=True)
+                    st.markdown("### 🎨 Theme Gallery")
+                    st.markdown('<p style="color: #94a3b8; margin-bottom: 20px;">Explore all 10 professional designs tailored with your data.</p>', unsafe_allow_html=True)
                     
                     g_cols = st.columns(2)
-                    for i, (name, path) in enumerate(HTML_TEMPLATES.items()):
+                    template_items = list(HTML_TEMPLATES.items())
+                    
+                    for i, (name, path) in enumerate(template_items):
                         with g_cols[i % 2]:
-                            with st.container():
-                                st.markdown(f"""
-                                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
-                                        <h4 style="margin: 0 0 10px 0; color: white;">{name}</h4>
-                                    </div>
-                                """, unsafe_allow_html=True)
+                            with st.container(border=True):
+                                st.markdown(f"#### {name}")
                                 
-                                # Mini preview
+                                # Mini preview (HTML only, no PDF generation here for speed)
                                 try:
                                     engine = ResumeEngine()
                                     data = engine.parse_markdown(st.session_state.generated_resume)
                                     mini_html = engine.render_html(path, data)
-                                    # Scale down for gallery
-                                    mini_html = mini_html.replace("</head>", "<style>body { transform: scale(0.4); transform-origin: top left; width: 250%; height: 250%; overflow: hidden; background: white; }</style></head>")
-                                    st.components.v1.html(mini_html, height=250)
-                                except:
-                                    st.error("Preview unavailable")
+                                    
+                                    # Scale down for gallery preview
+                                    styled_mini = mini_html.replace("</head>", """
+                                        <style>
+                                            body { 
+                                                transform: scale(0.35); 
+                                                transform-origin: top left; 
+                                                width: 285%; 
+                                                height: 285%; 
+                                                overflow: hidden; 
+                                                background: white; 
+                                                pointer-events: none;
+                                            }
+                                            ::-webkit-scrollbar { display: none; }
+                                        </style>
+                                    </head>""")
+                                    
+                                    st.components.v1.html(styled_mini, height=300, scrolling=False)
+                                except Exception as e:
+                                    st.error(f"Preview failed: {e}")
                                 
-                                # Download specific design
-                                if PDF_METHOD:
-                                    pdf_b = generate_html_pdf(st.session_state.generated_resume, path)
-                                    st.download_button(f"Download {name}", pdf_b, file_name=f"resume_{name}.pdf", key=f"gal_dl_{i}", use_container_width=True)
+                                # Quick action buttons
+                                bcol1, bcol2 = st.columns(2)
+                                with bcol1:
+                                    if st.button(f"✨ Select", key=f"sel_{name}", use_container_width=True):
+                                        st.session_state.selected_template = name
+                                        st.toast(f"Theme '{name}' applied!")
+                                        st.rerun()
+                                with bcol2:
+                                    # Link to a dedicated download or just inform
+                                    st.button("📄 Info", key=f"info_{name}", use_container_width=True, disabled=True)
+                                
                                 st.markdown("<br>", unsafe_allow_html=True)
 
                 with p_tabs[2]:
