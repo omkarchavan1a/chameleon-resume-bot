@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume - Jordan Blake</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=DM+Mono:wght@400&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(120deg, #fff5e6 0%, #ffe6f0 50%, #e6f3ff 100%);
+            color: #2d2d2d;
+            line-height: 1.6;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8c42 50%, #ffd93d 100%);
+            padding: 50px 40px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(255, 107, 107, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .name {
+            font-size: 52px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 8px;
+            letter-spacing: -2px;
+            position: relative;
+            z-index: 2;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .title {
+            font-size: 22px;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 20px;
+            font-weight: 600;
+            position: relative;
+            z-index: 2;
+        }
+
+        .contact {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .contact a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .contact a:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .section {
+            margin-bottom: 45px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d2d2d;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 12px;
+            display: inline-block;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b 0%, #ffd93d 100%);
+            border-radius: 2px;
+        }
+
+        .section:nth-child(4) .section-title::after {
+            background: linear-gradient(90deg, #6bcf7f 0%, #4ecdc4 100%);
+        }
+
+        .section:nth-child(5) .section-title::after {
+            background: linear-gradient(90deg, #a8e6cf 0%, #667eea 100%);
+        }
+
+        .entry {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+            border-left: 5px solid #ff6b6b;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .entry:nth-child(odd) {
+            border-left-color: #ff8c42;
+        }
+
+        .entry:nth-child(even) {
+            border-left-color: #ffd93d;
+        }
+
+        .section:nth-child(4) .entry {
+            border-left-color: #6bcf7f;
+        }
+
+        .entry:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .position {
+            font-weight: 700;
+            font-size: 17px;
+            color: #2d2d2d;
+        }
+
+        .organization {
+            color: #ff6b6b;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .date {
+            font-size: 13px;
+            color: #999;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .entry-description {
+            color: #555;
+            font-size: 15px;
+            line-height: 1.7;
+            margin-top: 10px;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: #666;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .skill-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border-top: 4px solid;
+        }
+
+        .skill-box:nth-child(1) {
+            border-top-color: #ff6b6b;
+        }
+
+        .skill-box:nth-child(2) {
+            border-top-color: #ff8c42;
+        }
+
+        .skill-box:nth-child(3) {
+            border-top-color: #ffd93d;
+        }
+
+        .skill-box:nth-child(4) {
+            border-top-color: #6bcf7f;
+        }
+
+        .skill-box:nth-child(5) {
+            border-top-color: #4ecdc4;
+        }
+
+        .skill-box:nth-child(6) {
+            border-top-color: #667eea;
+        }
+
+        .skill-title {
+            font-weight: 700;
+            color: #2d2d2d;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .skill-list {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 768px) {
+            .name {
+                font-size: 36px;
+            }
+
+            header {
+                padding: 35px 25px;
+            }
+
+            .contact {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .entry-header {
+                flex-direction: column;
+            }
+
+            .date {
+                margin-top: 5px;
+            }
+
+            .skills-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            header {
+                page-break-inside: avoid;
+            }
+
+            .entry {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="name">JORDAN BLAKE</div>
+            <div class="title">Creative Director & Brand Strategist</div>
+            <div class="contact">
+                <a href="mailto:jordan@example.com">jordan@example.com</a>
+                <a href="#">jordan-blake.com</a>
+                <a href="#">instagram.com/jordanblake</a>
+            </div>
+        </header>
+
+        <section class="section">
+            <div class="section-title">About</div>
+            <div class="entry">
+                <div class="entry-description">
+                    Award-winning creative director with 9+ years transforming brands through innovative design and strategic storytelling. Specializes in visual identity systems, brand strategy, and creating memorable experiences across digital and physical spaces.
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Experience</div>
+            
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">Creative Director</div>
+                        <div class="organization">BrandStudio Global</div>
+                    </div>
+                    <div class="date">2020 – Present</div>
+                </div>
+                <div class="entry-description">
+                    <ul>
+                        <li>Led creative strategy for 20+ international brand projects</li>
+                        <li>Designed comprehensive brand identity systems for Fortune 500 clients</li>
+                        <li>Managed team of 12 creatives across design, content, and strategy</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">Brand Designer</div>
+                        <div class="organization">Creative Agency Co.</div>
+                    </div>
+                    <div class="date">2017 – 2020</div>
+                </div>
+                <div class="entry-description">
+                    <ul>
+                        <li>Created visual identities and brand guidelines for 40+ startups</li>
+                        <li>Won 5 international design awards</li>
+                        <li>Collaborated with founders on go-to-market brand strategies</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Education</div>
+            
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">B.A. Graphic Design</div>
+                        <div class="organization">Rhode Island School of Design</div>
+                    </div>
+                    <div class="date">2015 – 2017</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Skills</div>
+            <div class="skills-grid">
+                <div class="skill-box">
+                    <div class="skill-title">Design Tools</div>
+                    <div class="skill-list">Figma, Adobe Suite, Sketch, Blender</div>
+                </div>
+                <div class="skill-box">
+                    <div class="skill-title">Brand Strategy</div>
+                    <div class="skill-list">Positioning, Messaging, Archetypes</div>
+                </div>
+                <div class="skill-box">
+                    <div class="skill-title">Visual Design</div>
+                    <div class="skill-list">Identity, Typography, Color Theory</div>
+                </div>
+                <div class="skill-box">
+                    <div class="skill-title">Web Design</div>
+                    <div class="skill-list">UX/UI, Responsive, Interaction</div>
+                </div>
+                <div class="skill-box">
+                    <div class="skill-title">Leadership</div>
+                    <div class="skill-list">Team Management, Mentoring</div>
+                </div>
+                <div class="skill-box">
+                    <div class="skill-title">Other</div>
+                    <div class="skill-list">Copywriting, Art Direction</div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

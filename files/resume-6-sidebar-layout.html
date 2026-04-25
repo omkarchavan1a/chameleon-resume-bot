@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume - David Park</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Raleway:wght@600;700&display=swap');
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 30%;
+            background: #2c3e50;
+            color: white;
+            padding: 50px 30px;
+            overflow-y: auto;
+        }
+
+        .main {
+            width: 70%;
+            background: white;
+            padding: 50px 45px;
+            overflow-y: auto;
+        }
+
+        .profile-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0 auto 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+        }
+
+        .name {
+            font-family: 'Raleway', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .title {
+            font-size: 14px;
+            text-align: center;
+            color: #ecf0f1;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .divider {
+            height: 2px;
+            background: #667eea;
+            margin: 30px 0;
+        }
+
+        .sidebar-section {
+            margin-bottom: 35px;
+        }
+
+        .sidebar-title {
+            font-family: 'Raleway', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .sidebar-item {
+            margin-bottom: 15px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .sidebar-label {
+            font-weight: 700;
+            color: white;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-value {
+            color: #bdc3c7;
+        }
+
+        .contact-link {
+            color: #667eea;
+            text-decoration: none;
+            word-break: break-word;
+        }
+
+        .skill-tag {
+            background: rgba(102, 126, 234, 0.2);
+            color: #ecf0f1;
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-bottom: 8px;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .main-title {
+            font-family: 'Raleway', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 25px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .entry {
+            margin-bottom: 30px;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .position {
+            font-family: 'Raleway', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .organization {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .date {
+            font-size: 12px;
+            color: #95a5a6;
+        }
+
+        .entry-description {
+            color: #555;
+            font-size: 13px;
+            line-height: 1.7;
+            margin-top: 8px;
+        }
+
+        ul {
+            margin-left: 18px;
+            margin-top: 8px;
+        }
+
+        li {
+            margin-bottom: 6px;
+            color: #555;
+        }
+
+        @media (max-width: 1024px) {
+            .wrapper {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 40px;
+            }
+
+            .main {
+                width: 100%;
+                padding: 40px;
+            }
+
+            .profile-img {
+                width: 100px;
+                height: 100px;
+            }
+
+            .name {
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                padding: 30px 20px;
+            }
+
+            .main {
+                padding: 30px 20px;
+            }
+
+            .entry-header {
+                flex-direction: column;
+            }
+
+            .date {
+                margin-top: 4px;
+            }
+        }
+
+        @media print {
+            .wrapper {
+                flex-direction: row;
+                height: auto;
+            }
+
+            .sidebar, .main {
+                height: auto;
+                overflow: visible;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="sidebar">
+            <div class="profile-img">DP</div>
+            <div class="name">DAVID PARK</div>
+            <div class="title">Financial Analyst</div>
+
+            <div class="divider"></div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Contact</div>
+                <div class="sidebar-item">
+                    <a href="mailto:david@example.com" class="contact-link">david@example.com</a>
+                </div>
+                <div class="sidebar-item">
+                    <span class="sidebar-label">Phone</span>
+                    <span class="sidebar-value">+1 (555) 234-5678</span>
+                </div>
+                <div class="sidebar-item">
+                    <a href="#" class="contact-link">linkedin.com/in/davidpark</a>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Skills</div>
+                <div>
+                    <span class="skill-tag">Financial Modeling</span>
+                    <span class="skill-tag">Valuation</span>
+                    <span class="skill-tag">Excel</span>
+                    <span class="skill-tag">Python</span>
+                    <span class="skill-tag">SQL</span>
+                    <span class="skill-tag">Tableau</span>
+                    <span class="skill-tag">Bloomberg</span>
+                    <span class="skill-tag">Risk Analysis</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Languages</div>
+                <div class="sidebar-item">
+                    <span class="sidebar-label">English</span>
+                    <span class="sidebar-value">Native</span>
+                </div>
+                <div class="sidebar-item">
+                    <span class="sidebar-label">Korean</span>
+                    <span class="sidebar-value">Fluent</span>
+                </div>
+                <div class="sidebar-item">
+                    <span class="sidebar-label">Mandarin</span>
+                    <span class="sidebar-value">Conversational</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Certifications</div>
+                <div class="sidebar-item">
+                    <span class="sidebar-label">CFA Level II</span>
+                    <span class="sidebar-value">Chartered Financial Analyst</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="main-title">Professional Summary</div>
+            <p style="margin-bottom: 30px; color: #555; line-height: 1.7; font-size: 13px;">
+                Analytical financial professional with 8+ years of experience in equity research, financial modeling, and portfolio analysis. Strong track record of delivering actionable insights that drive investment decisions. Proficient in quantitative analysis and market trends assessment.
+            </p>
+
+            <div class="main-title">Experience</div>
+
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <span class="position">Senior Financial Analyst</span>
+                        <br>
+                        <span class="organization">Capital Investment Group</span>
+                    </div>
+                    <span class="date">2020 – Present</span>
+                </div>
+                <div class="entry-description">
+                    <ul>
+                        <li>Analyzed 50+ investment opportunities annually, resulting in 15+ successful deals</li>
+                        <li>Built comprehensive financial models for M&A valuations and projections</li>
+                        <li>Presented quarterly performance analysis to C-suite executives</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <span class="position">Financial Analyst</span>
+                        <br>
+                        <span class="organization">Global Finance Corp</span>
+                    </div>
+                    <span class="date">2017 – 2020</span>
+                </div>
+                <div class="entry-description">
+                    <ul>
+                        <li>Managed portfolio of 30 companies worth $400M+ in assets</li>
+                        <li>Developed automated reporting system saving 10 hours per week</li>
+                        <li>Identified emerging market trends contributing to 8% portfolio outperformance</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="main-title">Education</div>
+
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <span class="position">Master of Business Administration (Finance)</span>
+                        <br>
+                        <span class="organization">Cornell University</span>
+                    </div>
+                    <span class="date">2015 – 2017</span>
+                </div>
+            </div>
+
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <span class="position">Bachelor of Science (Economics)</span>
+                        <br>
+                        <span class="organization">University of California</span>
+                    </div>
+                    <span class="date">2011 – 2015</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

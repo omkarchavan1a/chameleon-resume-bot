@@ -173,17 +173,6 @@ The AI will:
           🔢 Tokens: <strong id="token-count">0</strong> &nbsp;·&nbsp; NVIDIA NIM · Llama 3.3 70B
         </div>
 
-        <!-- Templates Section -->
-        <div class="templates-section" id="templates-section">
-          <div class="section-label">
-            <span class="step-badge">🎨</span>
-            Generated Resume Templates
-          </div>
-          <p class="templates-desc">Choose from your generated resumes. Select any resume to download or view. Each unique job role shows the latest generated version.</p>
-          <div id="templates-grid" class="templates-grid">
-            <!-- Templates will be loaded dynamically -->
-          </div>
-        </div>
 
         <!-- Recent History Section -->
         <div class="history-section" id="history-section">
@@ -253,79 +242,58 @@ The AI will:
         <div class="design-templates-section">
           <div class="section-header-row">
             <div class="subsection-label">🎨 Resume Theme</div>
-            <div class="current-theme-label">Active: <span id="active-theme-name">Modern Professional</span></div>
+            <div class="current-theme-label">Active: <span id="active-theme-name">Minimalist</span></div>
           </div>
           <div class="theme-selector">
-            <button class="theme-btn active" data-theme="modern" title="Modern Professional" onclick="selectTheme(this)">
-              <div class="theme-swatch modern"></div>
-              <span>Modern</span>
+            <button class="theme-btn active" data-theme="minimalist" data-label="Minimalist" title="Clean Minimalist" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#fafaf8,#e0e0de)"></div>
+              <span>Minimalist</span>
             </button>
-            <button class="theme-btn" data-theme="tech" title="Tech Minimal (Monospaced)" onclick="selectTheme(this)">
-              <div class="theme-swatch tech"></div>
-              <span>Tech</span>
+            <button class="theme-btn" data-theme="dark-tech" data-label="Dark Tech" title="Dark Tech" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#0f0f1e,#1a1a2e)"></div>
+              <span>Dark Tech</span>
             </button>
-            <button class="theme-btn" data-theme="elegant" title="Classic Elite (Serif)" onclick="selectTheme(this)">
-              <div class="theme-swatch elegant"></div>
-              <span>Classic</span>
+            <button class="theme-btn" data-theme="colorful" data-label="Colorful" title="Colorful Creative" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#ff6b6b,#ffd93d)"></div>
+              <span>Colorful</span>
             </button>
-            <button class="theme-btn" data-theme="bold" title="Creative Bold" onclick="selectTheme(this)">
-              <div class="theme-swatch bold"></div>
-              <span>Creative</span>
+            <button class="theme-btn" data-theme="timeline" data-label="Timeline" title="Timeline Narrative" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#2d3748,#4a5568)"></div>
+              <span>Timeline</span>
             </button>
-            <button class="theme-btn" data-theme="startup" title="Startup Modern" onclick="selectTheme(this)">
-              <div class="theme-swatch startup"></div>
-              <span>Startup</span>
+            <button class="theme-btn" data-theme="card" data-label="Card" title="Card Based" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#f8f9fa,#dee2e6)"></div>
+              <span>Card</span>
             </button>
-            <button class="theme-btn" data-theme="executive" title="Executive Prof." onclick="selectTheme(this)">
-              <div class="theme-swatch executive"></div>
-              <span>Executive</span>
+            <button class="theme-btn" data-theme="sidebar" data-label="Sidebar" title="Sidebar Layout" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#1e3a5f,#2c5282)"></div>
+              <span>Sidebar</span>
             </button>
-            <button class="theme-btn" data-theme="academic" title="Academic CV" onclick="selectTheme(this)">
-              <div class="theme-swatch academic"></div>
-              <span>Academic</span>
+            <button class="theme-btn" data-theme="masonry" data-label="Masonry" title="Masonry Grid" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#6b46c1,#805ad5)"></div>
+              <span>Masonry</span>
             </button>
-            <button class="theme-btn" data-theme="minimal" title="Ghost Minimal" onclick="selectTheme(this)">
-              <div class="theme-swatch minimal"></div>
-              <span>Minimal</span>
+            <button class="theme-btn" data-theme="glassmorphism" data-label="Glassmorphism" title="Glassmorphism" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,rgba(255,255,255,0.15),rgba(100,150,255,0.3));backdrop-filter:blur(4px)"></div>
+              <span>Glass</span>
             </button>
-            <button class="theme-btn" data-theme="impact" title="Modern High-Impact" onclick="selectTheme(this)">
-              <div class="theme-swatch impact"></div>
-              <span>Impact</span>
+            <button class="theme-btn" data-theme="vintage" data-label="Vintage" title="Vintage Retro" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#c5a45c,#8b6914)"></div>
+              <span>Vintage</span>
             </button>
-            <button class="theme-btn" data-theme="modernist" title="Clean Asymmetric" onclick="selectTheme(this)">
-              <div class="theme-swatch modernist"></div>
-              <span>Modernist</span>
+            <button class="theme-btn" data-theme="data-viz" data-label="Data Viz" title="Data Visualization" onclick="selectTheme(this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#00b4d8,#0077b6)"></div>
+              <span>Data Viz</span>
             </button>
-          </div>
-
-          <!-- design-toolkit -->
-          <div class="design-toolkit" id="design-toolkit">
-            <div class="toolkit-grid">
-              <div class="tool-group">
-                <label>🎨 Accent Color</label>
-                <div class="color-presets">
-                  <div class="color-dot active" style="background:#3b82f6" data-color="#3b82f6" onclick="setAccent(this)"></div>
-                  <div class="color-dot" style="background:#22c55e" data-color="#22c55e" onclick="setAccent(this)"></div>
-                  <div class="color-dot" style="background:#ef4444" data-color="#ef4444" onclick="setAccent(this)"></div>
-                  <div class="color-dot" style="background:#8b5cf6" data-color="#8b5cf6" onclick="setAccent(this)"></div>
-                  <div class="color-dot" style="background:#f59e0b" data-color="#f59e0b" onclick="setAccent(this)"></div>
-                  <div class="color-dot" style="background:#000000" data-color="#000000" onclick="setAccent(this)"></div>
-                </div>
-              </div>
-              <div class="tool-group">
-                <label>📏 Font Size: <span id="val-font-size">10</span>pt</label>
-                <input type="range" id="slider-font-size" min="8" max="14" step="0.5" value="10" oninput="updateDesignSetting('font-size', this.value)" />
-              </div>
-              <div class="tool-group">
-                <label>↔️ Line Spacing: <span id="val-spacing">1.5</span></label>
-                <input type="range" id="slider-spacing" min="1" max="2" step="0.1" value="1.5" oninput="updateDesignSetting('spacing', this.value)" />
-              </div>
-            </div>
           </div>
         </div>
 
-        <!-- Resume preview / raw -->
-        <div id="resume-preview" class="resume-preview"></div>
+        <!-- Resume preview (iframe for themed rendering) / raw markdown -->
+        <div id="resume-preview-wrapper" class="resume-preview-wrapper">
+          <iframe id="resume-iframe" class="resume-iframe" title="Resume Preview" sandbox="allow-same-origin allow-scripts"></iframe>
+        </div>
+        <!-- Fallback plain div for markdown view (hidden by default when iframe is active) -->
+        <div id="resume-preview" class="resume-preview hidden"></div>
         <div id="resume-raw" class="resume-raw hidden">
           <pre><code id="resume-raw-code"></code></pre>
         </div>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume - Casey Matthews</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #2c3e50;
+            padding: 50px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .name {
+            font-family: 'Playfair Display', serif;
+            font-size: 48px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 12px;
+            letter-spacing: -1.5px;
+        }
+
+        .title {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .contact {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            font-size: 13px;
+        }
+
+        .contact a, .contact span {
+            color: #555;
+            text-decoration: none;
+        }
+
+        .contact a {
+            color: #4a90e2;
+            transition: color 0.3s ease;
+        }
+
+        .contact a:hover {
+            color: #2e5c8a;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 35px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .card-subtitle {
+            font-size: 15px;
+            color: #4a90e2;
+            font-weight: 500;
+        }
+
+        .card-date {
+            font-size: 12px;
+            color: #999;
+            font-weight: 500;
+        }
+
+        .card-description {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-bottom: 35px;
+        }
+
+        .summary-card .card-title {
+            color: white;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .summary-card .card-description {
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .section-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #4a90e2;
+            font-weight: 700;
+            margin-bottom: 20px;
+            margin-top: 35px;
+            display: block;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 12px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .skills-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .skill-badge {
+            background: #f0f3ff;
+            border: 1px solid #d4e0f7;
+            padding: 12px 16px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 13px;
+            color: #4a90e2;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .skill-badge:hover {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .entry-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .entry {
+            border-left: 3px solid #e9ecef;
+            padding-left: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .entry:hover {
+            border-left-color: #4a90e2;
+        }
+
+        @media (max-width: 768px) {
+            .name {
+                font-size: 32px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .skills-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .contact {
+                flex-direction: column;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .card {
+                box-shadow: none;
+                border: 1px solid #e9ecef;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="name">CASEY MATTHEWS</div>
+            <div class="title">Marketing Manager & Brand Strategist</div>
+            <div class="contact">
+                <a href="mailto:casey@example.com">casey@example.com</a>
+                <span>+1 (555) 789-0123</span>
+                <a href="#">linkedin.com/in/caseymatthews</a>
+            </div>
+        </header>
+
+        <div class="card summary-card">
+            <div class="card-title">Professional Summary</div>
+            <div class="card-description" style="margin-top: 12px;">
+                Results-driven marketing professional with 7+ years building brands and driving growth for B2B SaaS and consumer companies. Expertise in go-to-market strategy, content marketing, and data-driven campaign optimization.
+            </div>
+        </div>
+
+        <span class="section-label">Experience</span>
+
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Marketing Manager</div>
+                    <div class="card-subtitle">TechFlow Solutions</div>
+                </div>
+                <div class="card-date">2021 – Present</div>
+            </div>
+            <div class="card-description">
+                <ul>
+                    <li>Led integrated marketing campaigns generating $2.5M in pipeline</li>
+                    <li>Increased website traffic by 180% through SEO and content strategy</li>
+                    <li>Built and mentored team of 3 marketers and 2 contractors</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Senior Marketing Specialist</div>
+                    <div class="card-subtitle">Innovation Labs</div>
+                </div>
+                <div class="card-date">2018 – 2021</div>
+            </div>
+            <div class="card-description">
+                <ul>
+                    <li>Managed $500K annual marketing budget across multiple channels</li>
+                    <li>Launched 6 product campaigns with average 45% conversion improvement</li>
+                    <li>Established content marketing program generating 100K+ organic leads</li>
+                </ul>
+            </div>
+        </div>
+
+        <span class="section-label">Education</span>
+
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">B.A. Communications</div>
+                    <div class="card-subtitle">Boston University</div>
+                </div>
+                <div class="card-date">2016 – 2018</div>
+            </div>
+        </div>
+
+        <span class="section-label">Core Competencies</span>
+
+        <div class="card">
+            <div class="skills-container">
+                <div class="skill-badge">Go-to-Market Strategy</div>
+                <div class="skill-badge">Content Marketing</div>
+                <div class="skill-badge">SEO/SEM</div>
+                <div class="skill-badge">Email Campaigns</div>
+                <div class="skill-badge">Google Analytics</div>
+                <div class="skill-badge">HubSpot</div>
+                <div class="skill-badge">Social Media</div>
+                <div class="skill-badge">Brand Strategy</div>
+                <div class="skill-badge">Team Leadership</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume - Emma Lawson</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap');
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-attachment: fixed;
+            color: #1a1a2e;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 50px;
+            text-align: center;
+            margin-bottom: 35px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .name {
+            font-size: 48px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .title {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        .contact {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 13px;
+        }
+
+        .contact a, .contact span {
+            color: rgba(255, 255, 255, 0.95);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .contact a {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .contact a:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            padding-left: 15px;
+            border-left: 4px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .position {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .organization {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 600;
+        }
+
+        .date {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .card-description {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+            line-height: 1.7;
+            margin-top: 10px;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        li {
+            margin-bottom: 6px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .summary-card .card-description {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .skills-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .skill-pill {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 25px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .skill-pill:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 35px;
+            }
+
+            .name {
+                font-size: 32px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .card-header {
+                flex-direction: column;
+            }
+
+            .contact {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .contact a {
+                width: 100%;
+                text-align: center;
+            }
+
+            .skills-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .card, header {
+                background: white;
+                border: 1px solid #e0e0e0;
+                box-shadow: none;
+            }
+
+            .name, .section-title, .position {
+                color: #000;
+            }
+
+            .contact a, .organization, .date, .card-description, li {
+                color: #333;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="name">EMMA LAWSON</div>
+            <div class="title">Software Architect & Team Lead</div>
+            <div class="contact">
+                <a href="mailto:emma@example.com">emma@example.com</a>
+                <a href="#">github.com/emmalawson</a>
+                <a href="#">linkedin.com/in/emmalawson</a>
+                <span>+1 (555) 567-8901</span>
+            </div>
+        </header>
+
+        <section class="section">
+            <div class="card summary-card">
+                <div class="card-description">
+                    Software architect with 9+ years building distributed systems and leading high-performing engineering teams. Specializes in system design, cloud architecture, and technical leadership. Proven ability to translate complex requirements into scalable solutions.
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Experience</div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="position">Staff Engineer & Tech Lead</div>
+                        <div class="organization">CloudTech Solutions</div>
+                    </div>
+                    <div class="date">2021 – Present</div>
+                </div>
+                <div class="card-description">
+                    <ul>
+                        <li>Architected microservices platform handling 1M+ requests/sec</li>
+                        <li>Led 12-person engineering team through platform migration</li>
+                        <li>Established engineering best practices and code review process</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="position">Senior Software Engineer</div>
+                        <div class="organization">TechCorp Industries</div>
+                    </div>
+                    <div class="date">2018 – 2021</div>
+                </div>
+                <div class="card-description">
+                    <ul>
+                        <li>Built real-time analytics engine processing 500GB daily</li>
+                        <li>Improved system performance by 60% through optimization</li>
+                        <li>Mentored 4 junior engineers</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Education</div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="position">M.S. Computer Science</div>
+                        <div class="organization">Carnegie Mellon University</div>
+                    </div>
+                    <div class="date">2016 – 2018</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="position">B.S. Computer Engineering</div>
+                        <div class="organization">Georgia Tech</div>
+                    </div>
+                    <div class="date">2012 – 2016</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Technical Skills</div>
+            <div class="card">
+                <div class="skills-container">
+                    <div class="skill-pill">System Design</div>
+                    <div class="skill-pill">Kubernetes</div>
+                    <div class="skill-pill">AWS & GCP</div>
+                    <div class="skill-pill">Java</div>
+                    <div class="skill-pill">Python</div>
+                    <div class="skill-pill">Go</div>
+                    <div class="skill-pill">PostgreSQL</div>
+                    <div class="skill-pill">Redis</div>
+                    <div class="skill-pill">GraphQL</div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

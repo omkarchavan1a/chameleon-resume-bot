@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume - Sarah Chen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital@0;1&family=Space+Mono&display=swap');
+
+        body {
+            font-family: 'Crimson Text', serif;
+            background: #fafaf8;
+            color: #2c2c2c;
+            line-height: 1.8;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+        }
+
+        header {
+            border-bottom: 1px solid #e0e0de;
+            padding-bottom: 40px;
+            margin-bottom: 40px;
+        }
+
+        .name {
+            font-size: 42px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .title {
+            font-size: 18px;
+            color: #666;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+
+        .contact {
+            font-size: 13px;
+            color: #999;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .contact a {
+            color: #2c2c2c;
+            text-decoration: none;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #2c2c2c;
+            margin-bottom: 25px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e0e0de;
+        }
+
+        .entry {
+            margin-bottom: 35px;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+
+        .position {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .organization {
+            color: #666;
+            font-style: italic;
+        }
+
+        .date {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .entry-description {
+            color: #555;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .skill-item {
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e0e0de;
+        }
+
+        .skill-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            margin-bottom: 6px;
+        }
+
+        .skill-value {
+            color: #2c2c2c;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px;
+            }
+
+            .name {
+                font-size: 28px;
+            }
+
+            .skills-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .entry-header {
+                flex-direction: column;
+            }
+
+            .date {
+                margin-top: 4px;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                max-width: 100%;
+                box-shadow: none;
+                padding: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="name">SARAH CHEN</div>
+            <div class="title">Product Designer & Creative Technologist</div>
+            <div class="contact">
+                <a href="mailto:sarah@example.com">sarah@example.com</a>
+                <span>+1 (555) 123-4567</span>
+                <a href="#">linkedin.com/in/sarahchen</a>
+                <a href="#">sarahchen.design</a>
+            </div>
+        </header>
+
+        <section class="section">
+            <div class="section-title">Professional Summary</div>
+            <div class="entry-description">
+                Design-driven product strategist with 8+ years creating intuitive digital experiences for Fortune 500 companies and innovative startups. Specialized in bridging design and engineering through systems thinking, user research, and collaborative leadership.
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Experience</div>
+            
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">Senior Product Designer</div>
+                        <div class="organization">TechVision Inc.</div>
+                    </div>
+                    <div class="date">2021 – Present</div>
+                </div>
+                <div class="entry-description">
+                    <ul>
+                        <li>Led design of core platform features serving 2M+ users globally</li>
+                        <li>Implemented design system reducing development time by 35%</li>
+                        <li>Mentored 4 junior designers on user-centered design methodology</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">Product Designer</div>
+                        <div class="organization">Creative Studios</div>
+                    </div>
+                    <div class="date">2018 – 2021</div>
+                </div>
+                <div class="entry-description">
+                    <ul>
+                        <li>Designed end-to-end user experiences for mobile and web products</li>
+                        <li>Conducted user research and usability testing with 100+ participants</li>
+                        <li>Increased user engagement by 28% through iterative design improvements</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Education</div>
+            
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">Master of Fine Arts in Interaction Design</div>
+                        <div class="organization">California Institute of the Arts</div>
+                    </div>
+                    <div class="date">2016 – 2018</div>
+                </div>
+            </div>
+
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">Bachelor of Science in Computer Science</div>
+                        <div class="organization">University of Washington</div>
+                    </div>
+                    <div class="date">2012 – 2016</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Skills</div>
+            <div class="skills-grid">
+                <div class="skill-item">
+                    <div class="skill-label">Design</div>
+                    <div class="skill-value">Figma, Sketch, Adobe CC</div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-label">Research</div>
+                    <div class="skill-value">User Testing, Analytics</div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-label">Frontend</div>
+                    <div class="skill-value">HTML, CSS, React Basics</div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-label">Leadership</div>
+                    <div class="skill-value">Team Management, Mentoring</div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-label">Process</div>
+                    <div class="skill-value">Design Systems, Agile</div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-label">Other</div>
+                    <div class="skill-value">Prototyping, Accessibility</div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

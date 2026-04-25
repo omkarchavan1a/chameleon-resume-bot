@@ -4,7 +4,8 @@
 
 const API_BASE = '';
 let historyData = []; // Local cache of recent generations
-let currentTheme = 'modern'; // Default theme
+let currentTheme = 'minimalist'; // Default theme
+let currentMarkdown = ''; // Current rendered resume markdown
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  USER AUTH CHECK — Redirect to landing if not registered
@@ -464,7 +465,7 @@ document.getElementById('clear-btn').addEventListener('click', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 //  STATE MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════
-let currentMarkdown = '';
+
 
 function resetOutput() {
   show('idle-state');
@@ -502,32 +503,167 @@ function resetLoadingSteps() {
 //  DESIGN & THEME LOGIC
 // ═══════════════════════════════════════════════════════════════════════════════
 function selectTheme(btn) {
-  // Update state
   currentTheme = btn.dataset.theme;
-  const themeName = btn.querySelector('span').textContent;
-  
-  // UI Update
+  const themeName = btn.dataset.label || btn.querySelector('span').textContent;
+
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('active-theme-name').textContent = `${themeName}`;
-  
-  // Apply to preview
-  const preview = document.getElementById('resume-preview');
-  preview.className = `resume-preview theme-${currentTheme}`;
-  
-  showToast(`🎨 Theme set: ${themeName}`);
+  document.getElementById('active-theme-name').textContent = themeName;
+
+  // If a resume is already rendered, re-render with new theme
+  if (currentMarkdown) {
+    injectIntoTheme(currentMarkdown);
+  }
+  showToast(`🎨 Theme: ${themeName}`);
+}
+
+// Parse markdown into structured data for HTML injection
+function parseMarkdownToData(md) {
+  const lines = md.split('\n');
+  const data = { name:'', title:'', contact:[], summary:'', skills:[], experience:[], education:[], projects:[] };
+  let section = '';
+  let currentEntry = null;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // H1 = Name
+    if (/^# /.test(line)) { data.name = line.replace(/^# /, '').trim(); continue; }
+    // H2 = Section headers
+    if (/^## /.test(line)) {
+      const h = line.replace(/^## /, '').toLowerCase();
+      if (h.includes('summary') || h.includes('profile'))     section = 'summary';
+      else if (h.includes('experience') || h.includes('work')) section = 'experience';
+      else if (h.includes('skill') || h.includes('technical')) section = 'skills';
+      else if (h.includes('education'))                         section = 'education';
+      else if (h.includes('project'))                           section = 'projects';
+      else section = 'other';
+      currentEntry = null;
+      continue;
+    }
+    // H3 = job title / entry header
+    if (/^### /.test(line)) {
+      const text = line.replace(/^### /, '').trim();
+      // Parse "Position @ Company | Date" or "Position — Company (Date)"
+      const m = text.match(/^(.+?)\s*[@|–—]\s*(.+?)\s*[|(]?\s*(\d{4}[^)]*)?\)?$/);
+      currentEntry = m ? { position:m[1].trim(), org:m[2].trim(), date:m[3]||'', bullets:[] } : { position:text, org:'', date:'', bullets:[] };
+      if (section==='experience') data.experience.push(currentEntry);
+      else if (section==='education') data.education.push(currentEntry);
+      else if (section==='projects') data.projects.push(currentEntry);
+      continue;
+    }
+    // Bold line (no H3) might be a sub-heading like contact info
+    if (/^\*\*/.test(line) && !section) {
+      // Likely title line under name
+      data.title = line.replace(/\*\*/g,'').trim();
+      continue;
+    }
+    // Bullet points
+    if (/^[-*]\s/.test(line)) {
+      const bullet = line.replace(/^[-*]\s/, '').trim();
+      if (section === 'summary') { data.contact.push(bullet); continue; }
+      if (currentEntry) { currentEntry.bullets.push(bullet); continue; }
+      if (section === 'skills') { data.skills.push(bullet); continue; }
+      continue;
+    }
+    // Plain lines
+    if (section === 'summary') {
+      data.summary += (data.summary ? ' ' : '') + line;
+    } else if (section === 'skills') {
+      // Comma-separated skills
+      line.split(',').forEach(s => { const t=s.replace(/\*\*/g,'').trim(); if(t) data.skills.push(t); });
+    } else if (!section && line.includes('@') || line.includes('+91') || line.includes('linkedin') || line.includes('github')) {
+      data.contact.push(line.replace(/\*\*/g,'').trim());
+    } else if (!section && !data.title) {
+      data.title = line.replace(/\*\*/g,'').trim();
+    }
+  }
+  return data;
+}
+
+// Inject LLM markdown into a fetched theme HTML string
+function buildThemedHTML(themeHTML, md) {
+  const d = parseMarkdownToData(md);
+  const htmlMd = marked.parse(md); // fallback full render
+
+  // Replace common placeholder patterns in the theme HTML
+  let out = themeHTML
+    // Name
+    .replace(/SARAH CHEN|ALEX RODRIGUEZ|DAVID PARK|MARCUS JOHNSON|ELENA VASQUEZ|JAMES WRIGHT|PRIYA SHARMA|THOMAS CHEN|[A-Z]{2,}\s[A-Z]{2,}/g,
+              d.name ? d.name.toUpperCase() : 'YOUR NAME')
+    // Title/role line (italic or class-based)
+    .replace(/(Product Designer &amp; Creative Technologist|Full Stack Engineer \| Cloud Architecture|Financial Analyst|[A-Za-z]+ &amp; [A-Za-z]+)/g,
+              d.title || d.name)
+    // Email
+    .replace(/sarah@example\.com|alex@example\.com|david@example\.com/g,
+              d.contact.find(c=>c.includes('@')) || 'email@example.com')
+    // Phone
+    .replace(/\+1 \(555\) \d{3}-\d{4}/g,
+              d.contact.find(c=>c.includes('+91')||c.match(/\d{10}/)) || '+91-0000000000');
+
+  // Inject a full markdown-rendered content block before </body> as a safe fallback
+  // for themes where pattern replacement may not cover all data
+  const resumeBlock = `
+    <style>
+      .crb-injected-resume { display:none; }
+    </style>
+    <div class="crb-injected-resume" data-markdown="1">${htmlMd}</div>`;
+
+  return out.replace('</body>', resumeBlock + '\n</body>');
+}
+
+async function injectIntoTheme(markdown) {
+  const iframe = document.getElementById('resume-iframe');
+  if (!iframe) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/get-theme/${currentTheme}`);
+    if (!res.ok) throw new Error('Theme not found');
+    const themeHTML = await res.text();
+    const themedHTML = buildThemedHTML(themeHTML, markdown);
+
+    // Write into iframe
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(themedHTML);
+    doc.close();
+
+    // Auto-resize iframe to content
+    iframe.onload = () => {
+      try {
+        const h = iframe.contentDocument.documentElement.scrollHeight;
+        iframe.style.height = Math.max(h, 800) + 'px';
+      } catch(e) {}
+    };
+    setTimeout(() => {
+      try {
+        const h = iframe.contentDocument.documentElement.scrollHeight;
+        iframe.style.height = Math.max(h, 800) + 'px';
+      } catch(e) {}
+    }, 500);
+
+  } catch(err) {
+    console.error('Theme injection error:', err);
+    // Fallback: render plain markdown in the preview div
+    const preview = document.getElementById('resume-preview');
+    preview.innerHTML = marked.parse(markdown);
+    preview.classList.remove('hidden');
+    const wrapper = document.getElementById('resume-preview-wrapper');
+    if (wrapper) wrapper.style.display = 'none';
+  }
 }
 
 function renderResume(markdown) {
-  const preview = document.getElementById('resume-preview');
-  preview.innerHTML = marked.parse(markdown);
-  preview.className = `resume-preview theme-${currentTheme}`;
-  
+  currentMarkdown = markdown;
   document.getElementById('resume-raw-code').textContent = markdown;
-  
+
   show('output-content');
   showPreview();
   document.getElementById('output-controls').style.display = 'flex';
+
+  injectIntoTheme(markdown);
+
   document.getElementById('output-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -614,20 +750,16 @@ function renderHistoryList(history) {
 }
 
 function loadHistoryItem(item) {
-  // Apply stored theme if present
   if (item.theme) {
     currentTheme = item.theme;
     updateThemeUI(currentTheme);
   }
-  
   currentMarkdown = item.resume_markdown;
   renderResume(currentMarkdown);
-  
   if (item.tokens_used) {
     document.getElementById('token-count').textContent = item.tokens_used.toLocaleString();
     document.getElementById('token-info').classList.remove('hidden');
   }
-  
   showToast(`📜 Loaded: ${item.target_position} (${currentTheme})`);
 }
 
@@ -636,7 +768,8 @@ function updateThemeUI(themeId) {
   if (btn) {
     document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('active-theme-name').textContent = btn.querySelector('span').textContent;
+    const label = btn.dataset.label || btn.querySelector('span').textContent;
+    document.getElementById('active-theme-name').textContent = label;
   }
 }
 
@@ -785,12 +918,16 @@ function escapeHtml(s) {
 //  VIEW TOGGLE
 // ═══════════════════════════════════════════════════════════════════════════════
 function showPreview() {
-  document.getElementById('resume-preview').classList.remove('hidden');
+  const wrapper = document.getElementById('resume-preview-wrapper');
+  if (wrapper) wrapper.style.display = 'block';
   document.getElementById('resume-raw').classList.add('hidden');
+  document.getElementById('resume-preview').classList.add('hidden');
   document.getElementById('preview-btn').classList.add('active');
   document.getElementById('raw-btn').classList.remove('active');
 }
 function showRaw() {
+  const wrapper = document.getElementById('resume-preview-wrapper');
+  if (wrapper) wrapper.style.display = 'none';
   document.getElementById('resume-raw').classList.remove('hidden');
   document.getElementById('resume-preview').classList.add('hidden');
   document.getElementById('raw-btn').classList.add('active');
@@ -840,178 +977,8 @@ function showToast(msg) {
 // Initial calls
 fetchHistory();
 injectJDPills();
-loadTemplates();
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  TEMPLATES SECTION - Shows Generated Resume Data
-// ═══════════════════════════════════════════════════════════════════════════════
-async function loadTemplates() {
-  try {
-    // Fetch actual generated resumes from history API
-    const res = await fetch(`${API_BASE}/api/history`);
-    if (!res.ok) throw new Error('Failed to load templates');
-    const data = await res.json();
-    renderGeneratedResumes(data);
-  } catch (err) {
-    console.error('Templates Error:', err);
-    // Show helpful message when backend is not available
-    document.getElementById('templates-grid').innerHTML = `
-      <div class="history-empty" style="grid-column: 1 / -1;">
-        <p>⚠️ Backend not running</p>
-        <p style="font-size: 0.8rem; margin-top: 0.5rem;">
-          Templates feature requires the FastAPI backend.<br>
-          Run: <code>python backend/main.py</code>
-        </p>
-      </div>
-    `;
-  }
-}
 
-function renderGeneratedResumes(resumes) {
-  const grid = document.getElementById('templates-grid');
-  if (!resumes || resumes.length === 0) {
-    grid.innerHTML = '<div class="history-empty">No generated resumes yet. Create some resumes first!</div>';
-    return;
-  }
-
-  // Get unique job roles and their latest resume
-  const uniqueRoles = {};
-  resumes.forEach(r => {
-    const role = r.target_position || 'Unknown Role';
-    if (!uniqueRoles[role] || new Date(r.timestamp) > new Date(uniqueRoles[role].timestamp)) {
-      uniqueRoles[role] = r;
-    }
-  });
-
-  // Role icons and colors mapping
-  const roleStyles = {
-    'Full-Stack': { icon: '⚛️', color: '#61dafb' },
-    'AI': { icon: '🤖', color: '#ff6b6b' },
-    'ML': { icon: '🧠', color: '#ff6b6b' },
-    'Data': { icon: '📊', color: '#4ecdc4' },
-    'DevOps': { icon: '⚙️', color: '#f7b731' },
-    'Product': { icon: '📱', color: '#5f27cd' },
-    'UX': { icon: '🎨', color: '#e84393' },
-    'Backend': { icon: '🐍', color: '#00d2d3' },
-    'Frontend': { icon: '💻', color: '#ff9f43' },
-    'Cloud': { icon: '☁️', color: '#54a0ff' },
-    'Security': { icon: '🔒', color: '#10ac84' },
-    'Software': { icon: '💻', color: '#a855f7' },
-    'Engineer': { icon: '⚡', color: '#f59e0b' },
-    'Developer': { icon: '👨‍💻', color: '#3b82f6' }
-  };
-
-  function getRoleStyle(role) {
-    for (const [key, style] of Object.entries(roleStyles)) {
-      if (role.toLowerCase().includes(key.toLowerCase())) {
-        return style;
-      }
-    }
-    return { icon: '📄', color: '#4f9cff' };
-  }
-
-  const uniqueResumeList = Object.values(uniqueRoles).slice(0, 10); // Show max 10 unique roles
-
-  grid.innerHTML = uniqueResumeList.map((r, index) => {
-    const role = r.target_position || 'Resume';
-    const city = r.target_city || 'Unknown';
-    const date = new Date(r.timestamp).toLocaleDateString();
-    const preview = r.resume_markdown ? r.resume_markdown.substring(0, 150) + '...' : 'No preview available';
-    const style = getRoleStyle(role);
-    const id = r._id || index;
-    
-    return `
-    <div class="template-card" data-id="${id}">
-      <div class="template-icon">${style.icon}</div>
-      <div class="template-title" style="color: ${style.color}">${role}</div>
-      <div class="template-meta">📍 ${city} • 📅 ${date}</div>
-      <div class="template-preview">${preview.replace(/[#*`]/g, '').substring(0, 100)}...</div>
-      <div class="template-actions">
-        <button class="template-btn" onclick="downloadResumeMD('${id}', '${role.replace(/'/g, "\\'")}', ${JSON.stringify(r.resume_markdown).replace(/'/g, "\\'")})">
-          📄 MD
-        </button>
-        <button class="template-btn pdf-btn" id="pdf-btn-${id}" onclick="downloadResumePDF('${id}', '${role.replace(/'/g, "\\'")}', ${JSON.stringify(r.resume_markdown).replace(/'/g, "\\'")})">
-          📄 PDF
-        </button>
-        <button class="template-btn" onclick="viewResume('${id}', ${JSON.stringify(r.resume_markdown).replace(/'/g, "\\'")})">
-          👁️ View
-        </button>
-      </div>
-    </div>
-  `}).join('');
-}
-
-// Download generated resume as Markdown
-function downloadResumeMD(id, title, content) {
-  try {
-    const safeTitle = title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-    const blob = new Blob([content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${safeTitle}-resume.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    showToast(`✅ Downloaded ${title} as Markdown!`);
-  } catch (err) {
-    showToast(`❌ Failed to download: ${err.message}`);
-  }
-}
-
-// Download generated resume as PDF
-async function downloadResumePDF(id, title, content) {
-  const btn = document.getElementById(`pdf-btn-${id}`);
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '<span class="template-loading"></span>';
-  btn.disabled = true;
-
-  try {
-    const safeTitle = title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-    
-    // Generate PDF
-    const pdfRes = await fetch(`${API_BASE}/api/generate-pdf`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        markdown: content,
-        filename: `${safeTitle}-resume.pdf`
-      })
-    });
-    
-    if (!pdfRes.ok) throw new Error('PDF generation failed');
-    
-    // Download PDF
-    const blob = await pdfRes.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${safeTitle}-resume.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    showToast(`✅ Downloaded ${title} as PDF!`);
-  } catch (err) {
-    showToast(`❌ Failed to generate PDF: ${err.message}`);
-  } finally {
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-  }
-}
-
-// View generated resume in preview
-function viewResume(id, content) {
-  currentMarkdown = content;
-  renderResume(content);
-  showToast('✅ Loaded resume into preview!');
-  
-  // Scroll to preview
-  document.querySelector('.panel-output').scrollIntoView({ behavior: 'smooth' });
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  USER MANAGEMENT
@@ -1026,44 +993,56 @@ function changeUser() {
 
 /**
  * Download the current resume as a PDF using html2pdf.js
+ * Captures the themed iframe content for accurate PDF output.
  */
 function downloadPDF() {
-  // Capture content
-  const preview = document.getElementById('resume-preview');
-  const name = document.getElementById('res-name')?.textContent || 'Candidate';
-  
-  if (!preview) {
-    showToast('❌ Resume content not found.');
+  if (!currentMarkdown) {
+    showToast('❌ No resume to download.');
     return;
   }
 
-  // Create clean clone for PDF generation
-  const element = preview.cloneNode(true);
-  
-  // Ensure the theme class is present on the clone if it was on the original
-  element.className = preview.className;
-  
-  // Force background visibility and clean up for PDF
+  const iframe = document.getElementById('resume-iframe');
+  let element;
+
+  try {
+    // Use iframe body content if available
+    const iDoc = iframe && (iframe.contentDocument || iframe.contentWindow.document);
+    if (iDoc && iDoc.body && iDoc.body.innerHTML.trim()) {
+      element = iDoc.body.cloneNode(true);
+      // Inject theme styles into the clone for pdf rendering
+      const styleEl = document.createElement('style');
+      Array.from(iDoc.head.querySelectorAll('style')).forEach(s => {
+        styleEl.textContent += s.textContent;
+      });
+      const wrapper = document.createElement('div');
+      wrapper.appendChild(styleEl);
+      wrapper.appendChild(element);
+      element = wrapper;
+    } else {
+      throw new Error('iframe empty');
+    }
+  } catch(e) {
+    // Fallback: use plain markdown preview div
+    element = document.getElementById('resume-preview').cloneNode(true);
+  }
+
   element.style.boxShadow = 'none';
   element.style.margin = '0';
   element.style.width = '100%';
-  
+
+  const candidateName = (currentMarkdown.match(/^# (.+)$/m)||[])[1] || 'Candidate';
   const opt = {
-    margin: [0.5, 0.5],
-    filename: `${name.replace(/\s+/g, '_')}_Resume.pdf`,
+    margin: [0.3, 0.3],
+    filename: `${candidateName.replace(/\s+/g,'_')}_Resume.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true, letterRendering: true },
     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
   };
 
   showToast('⏳ Generating PDF...');
-  
   html2pdf().set(opt).from(element).save()
-    .then(() => showToast('✅ PDF downloaded successfully!'))
-    .catch(err => {
-      console.error('PDF Generation Error:', err);
-      showToast('❌ PDF generation failed.');
-    });
+    .then(() => showToast('✅ PDF downloaded!'))
+    .catch(err => { console.error(err); showToast('❌ PDF generation failed.'); });
 }
 
 /**

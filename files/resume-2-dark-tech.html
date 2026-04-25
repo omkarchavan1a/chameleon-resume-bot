@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume - Alex Rodriguez</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 50px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .name {
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #64c8ff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -1.5px;
+        }
+
+        .title {
+            font-size: 20px;
+            color: #a0a0c0;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .contact {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            font-size: 14px;
+        }
+
+        .contact a {
+            color: #64c8ff;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .contact a:hover {
+            color: #a78bfa;
+        }
+
+        .contact span {
+            color: #808090;
+        }
+
+        .section {
+            margin-bottom: 45px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #64c8ff;
+            margin-bottom: 25px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(100, 200, 255, 0.3);
+            font-weight: 700;
+        }
+
+        .entry {
+            margin-bottom: 30px;
+            padding-left: 0;
+            border-left: 3px solid rgba(167, 139, 250, 0.3);
+            padding: 20px;
+            padding-left: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .entry:hover {
+            background: rgba(100, 200, 255, 0.05);
+            border-left-color: #a78bfa;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .position {
+            font-weight: 700;
+            font-size: 16px;
+            color: #ffffff;
+        }
+
+        .organization {
+            color: #a0a0c0;
+            font-size: 15px;
+        }
+
+        .date {
+            font-size: 13px;
+            color: #64c8ff;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .entry-description {
+            color: #c0c0d0;
+            font-size: 14px;
+            line-height: 1.7;
+            margin-top: 10px;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: #b0b0c0;
+        }
+
+        .skills-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .skill-category {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(100, 200, 255, 0.15);
+        }
+
+        .skill-category-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64c8ff;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .skill-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .skill-tag {
+            background: rgba(167, 139, 250, 0.15);
+            color: #a78bfa;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            border: 1px solid rgba(167, 139, 250, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .name {
+                font-size: 32px;
+            }
+
+            .contact {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .entry-header {
+                flex-direction: column;
+            }
+
+            .date {
+                margin-top: 5px;
+            }
+
+            .skills-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: #000;
+            }
+
+            .name {
+                background: none;
+                -webkit-text-fill-color: unset;
+                color: #000;
+            }
+
+            .entry {
+                background: transparent;
+                border: none;
+            }
+
+            header {
+                background: transparent;
+                border: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="name">ALEX RODRIGUEZ</div>
+            <div class="title">Full Stack Engineer | Cloud Architecture</div>
+            <div class="contact">
+                <a href="mailto:alex@example.com">alex@example.com</a>
+                <span>+1 (555) 987-6543</span>
+                <a href="#">github.com/alexrodriguez</a>
+                <a href="#">linkedin.com/in/alexrodriguez</a>
+            </div>
+        </header>
+
+        <section class="section">
+            <div class="section-title">Professional Summary</div>
+            <div class="entry-description">
+                Full-stack engineer with 7+ years building scalable cloud infrastructure and high-performance applications. Proven expertise in microservices architecture, DevOps practices, and leading cross-functional engineering teams.
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Experience</div>
+            
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">Senior Engineer</div>
+                        <div class="organization">CloudScale Systems</div>
+                    </div>
+                    <div class="date">2021 – Present</div>
+                </div>
+                <div class="entry-description">
+                    <ul>
+                        <li>Architected microservices platform handling 10M+ requests/day using Kubernetes</li>
+                        <li>Reduced infrastructure costs by 40% through cloud optimization</li>
+                        <li>Led migration of legacy monolith to event-driven architecture</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">Backend Engineer</div>
+                        <div class="organization">DataFlow Inc.</div>
+                    </div>
+                    <div class="date">2018 – 2021</div>
+                </div>
+                <div class="entry-description">
+                    <ul>
+                        <li>Built distributed data processing pipeline using Apache Kafka and Spark</li>
+                        <li>Improved API response time by 60% through optimization</li>
+                        <li>Implemented comprehensive monitoring and alerting system</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Education</div>
+            
+            <div class="entry">
+                <div class="entry-header">
+                    <div>
+                        <div class="position">B.S. Computer Science</div>
+                        <div class="organization">State University</div>
+                    </div>
+                    <div class="date">2016 – 2018</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Technical Skills</div>
+            <div class="skills-container">
+                <div class="skill-category">
+                    <div class="skill-category-title">Languages</div>
+                    <div class="skill-tags">
+                        <span class="skill-tag">Python</span>
+                        <span class="skill-tag">Go</span>
+                        <span class="skill-tag">JavaScript</span>
+                        <span class="skill-tag">SQL</span>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <div class="skill-category-title">Cloud & DevOps</div>
+                    <div class="skill-tags">
+                        <span class="skill-tag">AWS</span>
+                        <span class="skill-tag">Kubernetes</span>
+                        <span class="skill-tag">Docker</span>
+                        <span class="skill-tag">Terraform</span>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <div class="skill-category-title">Databases</div>
+                    <div class="skill-tags">
+                        <span class="skill-tag">PostgreSQL</span>
+                        <span class="skill-tag">Redis</span>
+                        <span class="skill-tag">MongoDB</span>
+                        <span class="skill-tag">Elasticsearch</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

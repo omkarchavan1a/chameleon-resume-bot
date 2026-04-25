@@ -237,6 +237,34 @@ async def extract_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"PDF extraction error: {str(e)}")
 
 
+# ─── Theme HTML Endpoint ────────────────────────────────────────────────────────
+THEMES_DIR = pathlib.Path(__file__).parent.parent / "files"
+
+THEME_FILE_MAP = {
+    "minimalist":       "resume-1-minimalist.html",
+    "dark-tech":        "resume-2-dark-tech.html",
+    "colorful":         "resume-3-colorful-creative.html",
+    "timeline":         "resume-4-timeline-narrative.html",
+    "card":             "resume-5-card-based.html",
+    "sidebar":          "resume-6-sidebar-layout.html",
+    "masonry":          "resume-7-masonry-grid.html",
+    "glassmorphism":    "resume-8-glassmorphism.html",
+    "vintage":          "resume-9-vintage-retro.html",
+    "data-viz":         "resume-10-data-visualization.html",
+}
+
+@app.get("/api/get-theme/{theme_id}")
+async def get_theme_html(theme_id: str):
+    """Return the raw HTML of a resume theme template."""
+    filename = THEME_FILE_MAP.get(theme_id)
+    if not filename:
+        raise HTTPException(status_code=404, detail=f"Theme '{theme_id}' not found.")
+    theme_path = THEMES_DIR / filename
+    if not theme_path.exists():
+        raise HTTPException(status_code=404, detail=f"Theme file not found on server.")
+    return FileResponse(str(theme_path), media_type="text/html")
+
+
 # ─── API Endpoints ─────────────────────────────────────────────────────────────
 @app.post("/api/generate-resume", response_model=ResumeResponse)
 async def generate_resume(req: ResumeRequest):
