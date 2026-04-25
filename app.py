@@ -33,7 +33,8 @@ if PDF_METHOD is None:
 
 # Custom Imports
 from styles import inject_styles, get_theme_css, get_industry_badge_css
-from config import MASTER_PROFILE, JD_TEMPLATES, JD_CATEGORIES, RESUME_THEMES, INDUSTRY_TEMPLATES, RESUME_STRUCTURES, INDUSTRY_SAMPLE_CONTENT
+from config import MASTER_PROFILE, JD_TEMPLATES, JD_CATEGORIES, RESUME_THEMES, INDUSTRY_TEMPLATES, RESUME_STRUCTURES, INDUSTRY_SAMPLE_CONTENT, HTML_TEMPLATES
+from resume_engine import ResumeEngine
 
 # ─── PDF Generation Helper ────────────────────────────────────────────────────
 PDF_CSS_STYLES = """
@@ -206,6 +207,23 @@ def generate_themed_pdf(markdown_content, theme_name='modern'):
         return generate_pdf_local(markdown_content)
 
 
+def generate_html_pdf(markdown_content, template_id='resume-1-minimalist'):
+    """Generate PDF using HTML templates and ResumeEngine."""
+    if PDF_METHOD != "weasyprint":
+        st.error("WeasyPrint is required for high-fidelity HTML templates. Using fallback.")
+        return generate_pdf_local(markdown_content)
+        
+    try:
+        engine = ResumeEngine()
+        data = engine.parse_markdown(markdown_content)
+        html_rendered = engine.render_html(template_id, data)
+        pdf_bytes = HTML(string=html_rendered).write_pdf()
+        return pdf_bytes
+    except Exception as e:
+        st.error(f"HTML Template PDF generation failed: {e}")
+        return generate_pdf_local(markdown_content)
+
+
 # Load external configuration
 load_dotenv("backend/.env")
 
@@ -274,7 +292,19 @@ with st.sidebar:
     st.markdown("<div class='gecko-header'>🦎</div>", unsafe_allow_html=True)
     st.title("Settings")
     
-    current_theme = st.selectbox("Resume Theme", ["Modern Dark", "Classic Blue", "Emerald", "Gold"], index=0)
+    template_names = list(HTML_TEMPLATES.keys())
+    # Sync selectbox with session state
+    current_idx = 0
+    if "selected_template" in st.session_state:
+        try:
+            current_idx = template_names.index(st.session_state.selected_template)
+        except ValueError:
+            current_idx = 0
+            
+    selected_t = st.selectbox("Resume Theme", template_names, index=current_idx)
+    if selected_t != st.session_state.get("selected_template"):
+        st.session_state.selected_template = selected_t
+        st.rerun()
     
     st.divider()
     st.markdown("### Profile Data")
@@ -510,168 +540,10 @@ else:
             st.rerun()
     
     # Main tabs
-    tab_gen, tab_templates, tab_hist = st.tabs(["✨ Generator Suite", "🎨 Templates", "📜 History Archive"])
+    tab_gen, tab_hist = st.tabs(["✨ Generator Suite", "📜 History Archive"])
 
-    with tab_templates:
-        # Initialize session state for template selection
-        if 'selected_industry' not in st.session_state:
-            st.session_state.selected_industry = 'tech'
-        if 'selected_theme' not in st.session_state:
-            st.session_state.selected_theme = 'modern'
-        if 'selected_structure' not in st.session_state:
-            st.session_state.selected_structure = 'chronological'
-        if 'preview_content' not in st.session_state:
-            st.session_state.preview_content = None
-            
-        # Inject template gallery CSS
-        st.markdown(get_industry_badge_css(), unsafe_allow_html=True)
-        
-        st.markdown("### 🎨 Resume Template Gallery")
-        st.markdown("Browse industry-specific templates with different visual themes and structures. Preview before downloading.")
-        st.markdown("---")
-        
-        # Create filter sidebar and main content layout
-        filter_col, main_col = st.columns([1, 3])
-        
-        with filter_col:
-            st.markdown("#### 🎯 Filters")
-            
-            # Industry Filter
-            st.markdown("**Industry**")
-            industry_options = {key: f"{val['icon']} {val['name']}" for key, val in INDUSTRY_TEMPLATES.items()}
-            selected_industry = st.selectbox(
-                "Select Industry",
-                options=list(industry_options.keys()),
-                format_func=lambda x: industry_options[x],
-                index=list(industry_options.keys()).index(st.session_state.selected_industry),
-                label_visibility="collapsed"
-            )
-            
-            # Theme Filter
-            st.markdown("**Visual Theme**")
-            theme_options = {key: f"{val['icon']} {val['name']}" for key, val in RESUME_THEMES.items()}
-            selected_theme = st.selectbox(
-                "Select Theme",
-                options=list(theme_options.keys()),
-                format_func=lambda x: theme_options[x],
-                index=list(theme_options.keys()).index(st.session_state.selected_theme),
-                label_visibility="collapsed"
-            )
-            
-            # Structure Filter
-            st.markdown("**Layout Structure**")
-            structure_options = {key: f"{val['icon']} {val['name']}" for key, val in RESUME_STRUCTURES.items()}
-            selected_structure = st.selectbox(
-                "Select Structure",
-                options=list(structure_options.keys()),
-                format_func=lambda x: structure_options[x],
-                index=list(structure_options.keys()).index(st.session_state.selected_structure),
-                label_visibility="collapsed"
-            )
-            
-            # Update session state
-            st.session_state.selected_industry = selected_industry
-            st.session_state.selected_theme = selected_theme
-            st.session_state.selected_structure = selected_structure
-            
-            # Show selected filters info
-            st.divider()
-            st.markdown("**Selected Configuration**")
-            st.caption(f"Industry: {INDUSTRY_TEMPLATES[selected_industry]['name']}")
-            st.caption(f"Theme: {RESUME_THEMES[selected_theme]['name']}")
-            st.caption(f"Structure: {RESUME_STRUCTURES[selected_structure]['name']}")
-            
-        with main_col:
-            # Display all industry templates as cards
-            st.markdown("#### 📋 Industry Templates")
-            
-            # Show templates for selected industry
-            industry_data = INDUSTRY_TEMPLATES[selected_industry]
-            sample_content = INDUSTRY_SAMPLE_CONTENT.get(selected_industry, INDUSTRY_SAMPLE_CONTENT['general'])
-            
-            # Create template card
-            with st.container(border=True):
-                col1, col2 = st.columns([2, 1])
-                
-                with col1:
-                    st.markdown(f"""
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <span style="font-size: 2rem;">{industry_data['icon']}</span>
-                            <div>
-                                <h4 style="margin: 0; color: {industry_data['badge_color']};">{industry_data['name']} Template</h4>
-                                <p style="margin: 0; font-size: 0.85rem; color: #666;">{industry_data['summary_focus']}</p>
-                            </div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Skills highlighted
-                    skills_text = " • ".join(industry_data['skills_highlight'])
-                    st.caption(f"**Key Skills:** {skills_text}")
-                    
-                    # Theme preview
-                    theme_data = RESUME_THEMES[selected_theme]
-                    st.caption(f"**Theme:** {theme_data['name']} - {theme_data['description']}")
-                    
-                with col2:
-                    # Preview button
-                    if st.button("👁️ Preview", use_container_width=True, type="primary"):
-                        st.session_state.preview_content = sample_content
-                        st.session_state.preview_theme = selected_theme
-                    
-                    # Download buttons
-                    if PDF_METHOD:
-                        pdf_bytes = generate_themed_pdf(sample_content, selected_theme)
-                        if pdf_bytes:
-                            st.download_button(
-                                "📄 PDF",
-                                data=pdf_bytes,
-                                file_name=f"{selected_industry}-{selected_theme}-resume.pdf",
-                                mime="application/pdf",
-                                use_container_width=True
-                            )
-                    
-                    st.download_button(
-                        "📄 Markdown",
-                        data=sample_content,
-                        file_name=f"{selected_industry}-{selected_theme}-resume.md",
-                        mime="text/markdown",
-                        use_container_width=True
-                    )
-            
-            # Show Live Preview if selected
-            if st.session_state.preview_content:
-                st.divider()
-                st.markdown("#### 👁️ Live Preview")
-                
-                preview_theme = st.session_state.get('preview_theme', 'modern')
-                theme_css = get_theme_css(preview_theme)
-                
-                # Render styled preview
-                try:
-                    html_content = md_parser.markdown(st.session_state.preview_content, extensions=['extra'])
-                except:
-                    html_content = st.session_state.preview_content.replace('# ', '<h1>').replace('## ', '<h2>').replace('\n', '<br>')
-                
-                preview_html = f"""
-                <style>{theme_css}</style>
-                <div class="resume-container">
-                    {html_content}
-                </div>
-                """
-                st.markdown(preview_html, unsafe_allow_html=True)
-            
-            # Show all industries in expandable section
-            with st.expander("📁 Browse All Industry Templates"):
-                for ind_key, ind_data in INDUSTRY_TEMPLATES.items():
-                    cols = st.columns([4, 1])
-                    with cols[0]:
-                        st.markdown(f"**{ind_data['icon']} {ind_data['name']}** - {ind_data['summary_focus']}")
-                    with cols[1]:
-                        if st.button("Select", key=f"select_{ind_key}", use_container_width=True):
-                            st.session_state.selected_industry = ind_key
-                            st.rerun()
-    
     with tab_gen:
+
         col_in, col_out = st.columns([1, 1], gap="large")
 
         with col_in:
@@ -679,16 +551,17 @@ else:
             
             # Quick Select Pills (Role)
             st.markdown("**Quick Role Pick:**")
-            role_cols = st.columns(len(JD_CATEGORIES))
-            for i, (cat, roles) in enumerate(JD_CATEGORIES.items()):
-                role_btn = role_cols[i].button(cat, key=f"role_{cat}", use_container_width=True)
-                if role_btn:
-                    st.session_state.target_position = roles[0]
-                    st.session_state.job_description = JD_TEMPLATES.get(roles[0], "")
+            role_pills = list(JD_CATEGORIES.keys())
+            p_cols = st.columns(len(role_pills))
+            for i, cat in enumerate(role_pills):
+                if p_cols[i].button(cat, key=f"p_{cat}", use_container_width=True):
+                    st.session_state.target_position = JD_CATEGORIES[cat][0]
+                    st.session_state.job_description = JD_TEMPLATES.get(JD_CATEGORIES[cat][0], "")
 
             # Target Inputs
             target_pos = st.text_input("Target Position", value=st.session_state.get('target_position', ""), placeholder="Software Engineer")
             target_city = st.text_input("Target City", placeholder="Pune, Remote, New York")
+            job_desc = st.text_area("Job Description (Optional)", value=st.session_state.get('job_description', ""), height=150)
             
             # Data Input
             exp_tab1, exp_tab2 = st.tabs(["📝 Text Paste", "📂 PDF Upload"])
@@ -703,8 +576,7 @@ else:
                             st.session_state.master_data = "\n".join([p.extract_text() for p in pdf.pages if p.extract_text()])
                     st.success("PDF Content Analyzed!")
 
-            job_desc = st.text_area("Job Description (Optional)", value=st.session_state.get('job_description', ""), height=150)
-
+            st.markdown("---")
             if st.button("🦎 Generate Chameleon Resume", type="primary", use_container_width=True):
                 if not target_pos or not target_city or not st.session_state.master_data:
                     st.warning("Ensure all required fields are filled.")
@@ -718,23 +590,15 @@ else:
                             st.session_state.generated_resume = res.choices[0].message.content
                             status.update(label="✅ Resume Engineered!", state="complete", expanded=False)
                             
-                            # Save to Mongo with user_email
+                            # Save to Mongo
                             if resumes_collection is not None:
                                 resume_doc = {
-                                    "type": "generation",
+                                    "user_email": st.session_state.user_email,
                                     "target_position": target_pos,
                                     "target_city": target_city,
                                     "resume_markdown": st.session_state.generated_resume,
                                     "timestamp": datetime.utcnow()
                                 }
-                                if st.session_state.user_email:
-                                    resume_doc["user_email"] = st.session_state.user_email
-                                    # Update user's last_active
-                                    if users_collection is not None:
-                                        users_collection.update_one(
-                                            {"email": st.session_state.user_email},
-                                            {"$set": {"last_active": datetime.utcnow()}}
-                                        )
                                 resumes_collection.insert_one(resume_doc)
                         except Exception as e:
                             st.error(f"Engine Failure: {e}")
@@ -743,28 +607,106 @@ else:
             st.markdown("### 2. Live Preview")
             if not st.session_state.generated_resume:
                 st.markdown(
-                    f"<div style='border: 1px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 4rem; text-align: center; color: #64748b;'>"
-                    f"<span style='font-size: 3rem;'>📄</span><br>Start on the left to see the magic here.</div>", 
+                    f"<div style='border: 1px dashed rgba(255,255,255,0.2); border-radius: 20px; padding: 4rem; text-align: center; color: #64748b; background: rgba(255,255,255,0.02);'>"
+                    f"<span style='font-size: 4rem; display: block; margin-bottom: 1rem;'>📄</span>Prepare your inputs to see the magic.</div>", 
                     unsafe_allow_html=True
                 )
             else:
-                with st.container(border=True):
-                    st.markdown(st.session_state.generated_resume)
+                # Preview mode selection
+                p_tabs = st.tabs(["✨ Preview", "🎨 Design Gallery", "📝 Source"])
+                
+                with p_tabs[0]:
+                    # Mini Gallery Selection
+                    st.markdown('<p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 10px;">Quick Theme Switch:</p>', unsafe_allow_html=True)
+                    mini_cols = st.columns(5)
+                    # Show all available templates from config
+                    template_items = list(HTML_TEMPLATES.items())
+                    for i, (name, path) in enumerate(template_items):
+                        with mini_cols[i % 5]:
+                            # Smaller buttons as "pills"
+                            is_selected = st.session_state.get('selected_template') == name
+                            if st.button(name[:10] + "..", key=f"mini_{name}", help=name, type="primary" if is_selected else "secondary"):
+                                st.session_state.selected_template = name
+                                st.rerun()
+                    
+                    # Main Preview
+                    with st.spinner("Rendering..."):
+                        try:
+                            engine = ResumeEngine()
+                            data = engine.parse_markdown(st.session_state.generated_resume)
+                            t_id = st.session_state.get('selected_template', 'Minimalist Professional')
+                            t_path = HTML_TEMPLATES.get(t_id)
+                            html_rendered = engine.render_html(t_path, data)
+                            
+                            st.markdown(f"""
+                                <div style="background: white; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; height: 750px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                                    <iframe srcdoc='{html_rendered.replace("'", "&apos;")}' style="width: 100%; height: 100%; border: none;"></iframe>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Actions below preview
+                            st.markdown("<br>", unsafe_allow_html=True)
+                            act_col1, act_col2 = st.columns(2)
+                            with act_col1:
+                                if PDF_METHOD:
+                                    pdf_bytes = generate_html_pdf(st.session_state.generated_resume, t_path)
+                                    st.download_button("📥 Download PDF", pdf_bytes, file_name=f"resume_{t_id.lower().replace(' ', '_')}.pdf", mime="application/pdf", use_container_width=True)
+                            with act_col2:
+                                st.button("📋 Copy Link", use_container_width=True)
+                                
+                        except Exception as e:
+                            st.error(f"Render Error: {e}")
+
+                with p_tabs[1]:
+                    st.markdown("### Premium Gallery")
+                    st.markdown('<p style="color: #94a3b8; margin-bottom: 20px;">Download your resume in any of our 10 professional designs.</p>', unsafe_allow_html=True)
+                    
+                    g_cols = st.columns(2)
+                    for i, (name, path) in enumerate(HTML_TEMPLATES.items()):
+                        with g_cols[i % 2]:
+                            with st.container():
+                                st.markdown(f"""
+                                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
+                                        <h4 style="margin: 0 0 10px 0; color: white;">{name}</h4>
+                                    </div>
+                                """, unsafe_allow_html=True)
+                                
+                                # Mini preview
+                                try:
+                                    engine = ResumeEngine()
+                                    data = engine.parse_markdown(st.session_state.generated_resume)
+                                    mini_html = engine.render_html(path, data)
+                                    # Scale down for gallery
+                                    mini_html = mini_html.replace("</head>", "<style>body { transform: scale(0.4); transform-origin: top left; width: 250%; height: 250%; overflow: hidden; background: white; }</style></head>")
+                                    st.components.v1.html(mini_html, height=250)
+                                except:
+                                    st.error("Preview unavailable")
+                                
+                                # Download specific design
+                                if PDF_METHOD:
+                                    pdf_b = generate_html_pdf(st.session_state.generated_resume, path)
+                                    st.download_button(f"Download {name}", pdf_b, file_name=f"resume_{name}.pdf", key=f"gal_dl_{i}", use_container_width=True)
+                                st.markdown("<br>", unsafe_allow_html=True)
+
+                with p_tabs[2]:
+                    with st.container(border=True):
+                        st.markdown(st.session_state.generated_resume)
                 
                 st.divider()
                 dcol1, dcol2, dcol3 = st.columns(3)
                 with dcol1:
                     st.download_button("📄 MD", st.session_state.generated_resume, file_name="chameleon_resume.md", use_container_width=True)
                 with dcol2:
-                    # PDF download using local generation
+                    # PDF download using template generation
                     if PDF_METHOD:
-                        pdf_bytes = generate_pdf_local(st.session_state.generated_resume)
+                        template_path = HTML_TEMPLATES.get(st.session_state.selected_template)
+                        pdf_bytes = generate_html_pdf(st.session_state.generated_resume, template_path)
                         if pdf_bytes:
                             st.download_button("📄 PDF", pdf_bytes, file_name="chameleon_resume.pdf", mime="application/pdf", use_container_width=True)
                         else:
                             st.button("📄 PDF", disabled=True, use_container_width=True)
                     else:
-                        st.button("📄 PDF", disabled=True, help="Install weasyprint or markdown-pdf", use_container_width=True)
+                        st.button("📄 PDF", disabled=True, help="Install weasyprint", use_container_width=True)
                 with dcol3:
                     if st.button("📋 Copy", use_container_width=True):
                         st.toast("Copied to clipboard! (Simulated)")

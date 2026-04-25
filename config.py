@@ -160,6 +160,20 @@ RESUME_THEMES = {
     }
 }
 
+# Mapping of Local HTML Templates in files/ directory
+HTML_TEMPLATES = {
+    "Minimalist": "files/resume-1-minimalist.html",
+    "Dark Tech": "files/resume-2-dark-tech.html",
+    "Colorful Creative": "files/resume-3-colorful-creative.html",
+    "Timeline Narrative": "files/resume-4-timeline-narrative.html",
+    "Card Based": "files/resume-5-card-based.html",
+    "Sidebar Layout": "files/resume-6-sidebar-layout.html",
+    "Masonry Grid": "files/resume-7-masonry-grid.html",
+    "Glassmorphism": "files/resume-8-glassmorphism.html",
+    "Vintage Retro": "files/resume-9-vintage-retro.html",
+    "Data Visualization": "files/resume-10-data-visualization.html"
+}
+
 # Industry-specific templates with tailored content
 INDUSTRY_TEMPLATES = {
     "tech": {

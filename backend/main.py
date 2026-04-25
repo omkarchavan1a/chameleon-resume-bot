@@ -311,7 +311,7 @@ async def generate_resume(req: ResumeRequest):
                     "theme": req.theme,
                     "resume_markdown": resume_md,
                     "tokens_used": tokens_used,
-                    "timestamp": datetime.utcnow()
+                    "timestamp": datetime.now()
                 }
                 if req.user_email:
                     resume_doc["user_email"] = req.user_email
@@ -319,7 +319,7 @@ async def generate_resume(req: ResumeRequest):
                     try:
                         await db.users.update_one(
                             {"email": req.user_email},
-                            {"$set": {"last_active": datetime.utcnow()}},
+                            {"$set": {"last_active": datetime.now()}},
                             upsert=True
                         )
                     except Exception as db_err:
@@ -450,18 +450,24 @@ Apply the instructions above to the resume and return the complete updated resum
         refined_md  = completion.choices[0].message.content
         tokens_used = completion.usage.total_tokens if completion.usage else 0
 
-        # Persist to MongoDB
-        db = await get_db()
-        await db.resumes.insert_one({
-            "type": "refinement",
-            "instructions": req.instructions,
-            "target_position": req.target_position,
-            "target_city": req.target_city,
-            "theme": req.theme,
-            "resume_markdown": refined_md,
-            "tokens_used": tokens_used,
-            "timestamp": datetime.utcnow()
-        })
+        # Persist to MongoDB (with graceful degradation)
+        try:
+            db = await get_db()
+            if db is not None:
+                await db.resumes.insert_one({
+                    "type": "refinement",
+                    "instructions": req.instructions,
+                    "target_position": req.target_position,
+                    "target_city": req.target_city,
+                    "theme": req.theme,
+                    "resume_markdown": refined_md,
+                    "tokens_used": tokens_used,
+                    "timestamp": datetime.now()
+                })
+            else:
+                print("[WARNING] Database not available, refinement generated but not saved")
+        except Exception as db_err:
+            print(f"[WARNING] Database error during refinement save: {db_err}")
 
         return ResumeResponse(resume_markdown=refined_md, tokens_used=tokens_used)
 
@@ -482,7 +488,7 @@ async def register_user(user: UserRegistration):
             # Update last_active for existing user
             await db.users.update_one(
                 {"email": user.email},
-                {"$set": {"last_active": datetime.utcnow()}}
+                {"$set": {"last_active": datetime.now()}}
             )
             return {"success": True, "message": "User already registered, updated activity", "email": user.email}
         
@@ -490,8 +496,8 @@ async def register_user(user: UserRegistration):
         user_doc = {
             "email": user.email,
             "phone": user.phone,
-            "registered_at": datetime.utcnow(),
-            "last_active": datetime.utcnow()
+            "registered_at": datetime.now(),
+            "last_active": datetime.now()
         }
         await db.users.insert_one(user_doc)
         
