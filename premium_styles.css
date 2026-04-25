@@ -1,51 +1,167 @@
 /* ── Chameleon Resume Bot Design System ── */
+/* LIQUID GLASS DESIGN SYSTEM for Streamlit */
 
 :root {
-    --primary-glow: rgba(79, 156, 255, 0.5);
-    --secondary-glow: rgba(168, 85, 247, 0.7);
-    --glass-bg: rgba(17, 24, 39, 0.7);
-    --border-glow: rgba(99, 173, 255, 0.2);
+  /* Glass surfaces */
+  --glass-1:       rgba(255,255,255,0.06);
+  --glass-2:       rgba(255,255,255,0.10);
+  --glass-3:       rgba(255,255,255,0.15);
+  --glass-border:  rgba(255,255,255,0.18);
+  --glass-border-bright: rgba(255,255,255,0.38);
+  --glass-shadow:  0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+
+  /* Iridescent glow palette */
+  --iris-a: #4f9cff;
+  --iris-b: #a855f7;
+  --iris-c: #06b6d4;
+
+  /* Specular highlight gradient */
+  --specular: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.30) 0%,
+    rgba(255,255,255,0.08) 40%,
+    transparent 70%
+  );
+
+  --blur-sm:   blur(8px)  saturate(1.4);
+  --blur-md:   blur(18px) saturate(1.6);
+  --blur-lg:   blur(32px) saturate(1.8);
 }
 
-/* Main Overrides */
+/* Main App Ambient Background */
 .stApp {
-    background: #070b14;
-    color: #f0f6ff;
-    font-family: 'Inter', sans-serif;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(79,156,255,0.18) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 50% at 80% 80%, rgba(168,85,247,0.14) 0%, transparent 60%),
+              radial-gradient(ellipse 50% 40% at 50% 50%, rgba(6,182,212,0.08) 0%, transparent 60%),
+              #070b14 !important;
+  color: #f0f6ff;
+  font-family: 'Inter', sans-serif;
 }
 
-/* Glass Panels */
+/* Floating Orbs for Ambient Light */
+.stApp::before,
+.stApp::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(80px);
+  opacity: 0.35;
+  animation: orb-drift 18s ease-in-out infinite alternate;
+}
+.stApp::before {
+  width: 600px; height: 600px;
+  top: -150px; left: -150px;
+  background: radial-gradient(circle, #4f9cff, transparent 70%);
+}
+.stApp::after {
+  width: 500px; height: 500px;
+  bottom: -120px; right: -120px;
+  background: radial-gradient(circle, #a855f7, transparent 70%);
+  animation-delay: -9s;
+  animation-direction: alternate-reverse;
+}
+@keyframes orb-drift {
+  0%   { transform: translate(0,0)  scale(1); }
+  50%  { transform: translate(60px,40px) scale(1.1); }
+  100% { transform: translate(-40px,80px) scale(0.95); }
+}
+
+/* Sidebar Liquid Glass */
+[data-testid="stSidebar"] {
+  background: rgba(7,11,20,0.4) !important;
+  backdrop-filter: var(--blur-lg) !important;
+  -webkit-backdrop-filter: var(--blur-lg) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06), var(--glass-shadow) !important;
+}
+
+/* Glass Panels (Containers, Expander, Forms) */
 div[data-testid="stVerticalBlock"] > div:has(div.stExpander), 
-.stMarkdown div[data-testid="stBlock"] {
-    background: var(--glass-bg) !important;
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--border-glow);
-    border-radius: 20px;
-    padding: 1.5rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+.stMarkdown div[data-testid="stBlock"],
+form[data-testid="stForm"],
+div[data-testid="stContainer"] {
+  background: var(--glass-2) !important;
+  backdrop-filter: var(--blur-sm) !important;
+  -webkit-backdrop-filter: var(--blur-sm) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 16px rgba(0,0,0,0.25) !important;
+  transition: all 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
 }
 
-/* Card Glow */
-.stMarkdown div[data-testid="stBlock"]:hover {
-    border-color: rgba(168, 85, 247, 0.4);
-    box-shadow: 0 8px 40px rgba(168, 85, 247, 0.15);
-    transition: all 0.3s ease;
+.stMarkdown div[data-testid="stBlock"]:hover,
+form[data-testid="stForm"]:hover {
+  border-color: var(--glass-border-bright) !important;
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 8px 24px rgba(0,0,0,0.3) !important;
 }
 
-/* Custom Buttons */
+/* Input Fields (Text inputs, textareas) */
+div[data-testid="stTextInput"] input,
+div[data-testid="stTextArea"] textarea {
+  background: rgba(255,255,255,0.07) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: #f0f6ff !important;
+  transition: all 0.3s ease !important;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), inset 0 -1px 0 rgba(255,255,255,0.05) !important;
+  border-radius: 8px !important;
+}
+div[data-testid="stTextInput"] input:focus,
+div[data-testid="stTextArea"] textarea:focus {
+  background: rgba(79,156,255,0.10) !important;
+  border-color: rgba(79,156,255,0.6) !important;
+  box-shadow: 0 0 0 3px rgba(79,156,255,0.15), inset 0 1px 3px rgba(0,0,0,0.15), 0 0 16px rgba(79,156,255,0.12) !important;
+}
+
+/* Custom Buttons (Primary Liquid Glass Button) */
+button[kind="primaryFormSubmit"],
 button[kind="primary"] {
-    background: linear-gradient(135deg, #4f9cff 0%, #a855f7 100%) !important;
-    border: none !important;
-    border-radius: 12px !important;
-    font-weight: 700 !important;
+  background: linear-gradient(135deg, rgba(79,156,255,0.7) 0%, rgba(168,85,247,0.7) 50%, rgba(79,156,255,0.7) 100%) !important;
+  background-size: 200% 200% !important;
+  animation: btn-iris 4s ease infinite !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 24px rgba(79,156,255,0.4), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.2) !important;
+  color: white !important;
+  transition: all 0.3s ease !important;
+}
+
+button[kind="primary"]:hover,
+button[kind="primaryFormSubmit"]:hover {
+  transform: translateY(-3px) scale(1.01) !important;
+  box-shadow: 0 12px 40px rgba(79,156,255,0.55), inset 0 1px 0 rgba(255,255,255,0.4), 0 0 48px rgba(168,85,247,0.3) !important;
+}
+@keyframes btn-iris {
+  0%,100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* Secondary Buttons */
+button[kind="secondary"] {
+  background: var(--glass-2) !important;
+  backdrop-filter: var(--blur-sm) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1) !important;
+  color: white !important;
+}
+button[kind="secondary"]:hover {
+  background: rgba(79,156,255,0.18) !important;
+  border-color: rgba(79,156,255,0.5) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 16px rgba(79,156,255,0.2), inset 0 1px 0 rgba(255,255,255,0.15) !important;
 }
 
 /* Gecko Pulse */
 @keyframes chameleon-pulse {
-    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px var(--primary-glow)); }
-    50%       { transform: scale(1.05); filter: drop-shadow(0 0 20px var(--secondary-glow)); }
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px rgba(79, 156, 255, 0.5)); }
+    50%       { transform: scale(1.05); filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.7)); }
 }
-
 .gecko-header {
     font-size: 3rem;
     animation: chameleon-pulse 3s ease-in-out infinite;
@@ -60,32 +176,34 @@ footer {visibility: hidden;}
 /* Custom Tabs */
 .stTabs [data-baseweb="tab-list"] {
     gap: 10px;
+    background: transparent !important;
 }
 
 .stTabs [data-baseweb="tab"] {
     background: rgba(255,255,255,0.05);
     border-radius: 10px 10px 0 0;
     color: #94a3b8;
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--glass-border);
+    border-bottom: none;
 }
 
 .stTabs [aria-selected="true"] {
-    background: rgba(79, 156, 255, 0.15) !important;
-    color: #4f9cff !important;
+    background: rgba(79, 156, 255, 0.25) !important;
+    color: #fff !important;
+    border: 1px solid rgba(79,156,255,0.5) !important;
     border-bottom: 2px solid #4f9cff !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 12px rgba(79,156,255,0.3) !important;
 }
 
-/* Theme Gallery Cards */
-.theme-card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 15px;
-    transition: all 0.3s ease;
+/* Remove default background from certain containers so glass doesn't compound */
+div[data-testid="stVerticalBlock"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
-
-.theme-card:hover {
-    border-color: rgba(79, 156, 255, 0.4);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+div[data-testid="stHorizontalBlock"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }

@@ -2,6 +2,7 @@ import os
 import re
 import io
 import json
+import copy
 from bs4 import BeautifulSoup
 import markdown
 
@@ -114,166 +115,345 @@ class ResumeEngine:
                     
         return data
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # HTML rendering helpers
+    # ─────────────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _cls_match(tag, *keywords):
+        """Return True if any of the tag's exact classes match any of the keywords."""
+        if not hasattr(tag, 'get'):
+            return False
+        classes = tag.get('class', [])
+        if isinstance(classes, str):
+            classes = [classes]
+        classes = [c.lower() for c in classes]
+        return any(kw.lower() in classes for kw in keywords)
+
+    @staticmethod
+    def _find_by_cls(soup, *keywords):
+        """Find the first element whose exact class contains any keyword."""
+        return soup.find(lambda t: ResumeEngine._cls_match(t, *keywords))
+
+    @staticmethod
+    def _set_text(elem, text):
+        """Clear an element and set its text content."""
+        if elem is not None:
+            elem.clear()
+            elem.string = str(text)
+
+    @staticmethod
+    def _is_header_matching(tag, *keywords):
+        """Returns True if the tag is a header (or simple div) containing one of the keywords."""
+        if tag.name not in ['h1', 'h2', 'h3', 'div', 'span']:
+            return False
+        # Do not match container divs that wrap the whole page!
+        # If it has block children like 'div', 'section', 'ul', it's probably a container, not a header.
+        if tag.name == 'div' and tag.find(['div', 'section', 'ul']):
+            return False
+        text = tag.get_text(strip=True).lower()
+        return any(kw in text for kw in keywords)
+
     @staticmethod
     def render_html(template_path, data):
-        """Inject structured data into an HTML template."""
+        """
+        Inject structured resume data into an HTML template.
+
+        Strategy:
+        1. Try precise DOM injection using the class names present in the templates.
+        2. If the injected name doesn't match (i.e. injection failed), fall back to
+           embedding a fully rendered markdown block inside the template's main container.
+        This guarantees the downloaded PDF always contains the user's real data.
+        """
         if not os.path.exists(template_path):
-            return f"Template not found: {template_path}"
-            
+            return f"<p>Template not found: {template_path}</p>"
+
         with open(template_path, 'r', encoding='utf-8') as f:
-            soup = BeautifulSoup(f.read(), 'html.parser')
-            
-        # 1. Basic Info (Highest Precision)
-        name_elem = soup.find(class_='name')
-        if name_elem: 
-            name_elem.clear()
-            name_elem.string = data["name"]
-        
-        title_elem = soup.find(class_='title')
-        if title_elem: 
-            title_elem.clear()
-            title_elem.string = data["title"]
-        
-        # 2. Contact Info
+            raw_html = f.read()
+
+        soup = BeautifulSoup(raw_html, 'html.parser')
+        fe = ResumeEngine  # shorthand
+
+        # ── 1. Name ──────────────────────────────────────────────────────────
+        name_elem = fe._find_by_cls(soup, 'name', 'candidate-name', 'full-name', 'hero-name', 'author-name')
+        fe._set_text(name_elem, data.get("name", ""))
+
+        # ── 2. Title / Role ──────────────────────────────────────────────────
+        title_elem = fe._find_by_cls(soup, 'title', 'role', 'subtitle', 'tagline', 'hero-title', 'job-title', 'profession')
+        fe._set_text(title_elem, data.get("title", ""))
+
+        # ── 3. Contact ───────────────────────────────────────────────────────
         contact_container = soup.find(class_='contact')
         if contact_container:
-            # Update links
             for link in contact_container.find_all('a'):
                 href = link.get('href', '')
-                if 'mailto' in href or (link.string and '@' in link.string):
+                text = link.get_text(strip=True)
+                if 'mailto' in href or '@' in text:
                     if data["contact"]["email"]:
                         link.string = data["contact"]["email"]
                         link['href'] = f"mailto:{data['contact']['email']}"
-                elif 'linkedin' in href or 'linkedin' in (link.string or '').lower():
+                elif 'linkedin' in href.lower() or 'linkedin' in text.lower():
                     if data["contact"]["linkedin"]:
                         link['href'] = data["contact"]["linkedin"]
-                elif 'github' in href or 'github' in (link.string or '').lower():
+                elif 'github' in href.lower() or 'github' in text.lower():
                     if data["contact"]["github"]:
                         link['href'] = data["contact"]["github"]
-            
-            # Update phone numbers in spans/divs
-            for item in contact_container.find_all(['span', 'div']):
-                if item.string and re.search(r'\d{5}', item.string):
-                    if data["contact"]["phone"]:
+
+            # Update phone text in leaf nodes
+            for item in contact_container.find_all(['span', 'div', 'p']):
+                text = item.get_text(strip=True)
+                if re.search(r'\+?\d[\d\s\-()]{7,}', text) and data["contact"]["phone"]:
+                    if not item.find(['span', 'div', 'a']):
+                        item.clear()
                         item.string = data["contact"]["phone"]
+                        break
 
-        # 3. Summary Section
-        summary_container = soup.find(class_=['summary', 'summary-text', 'about-text'])
-        if not summary_container:
-            # Fallback: search for header with "summary" or "about"
-            header = soup.find(lambda tag: tag.name in ['h1', 'h2', 'h3', 'div'] and 
-                              any(x in tag.text.lower() for x in ['summary', 'about', 'profile']))
-            if header:
-                summary_container = header.find_next(['p', 'div'])
-        
-        if summary_container:
-            summary_container.clear()
-            summary_container.string = data.get("summary", "")
+        # ── 4. Summary ───────────────────────────────────────────────────────
+        summary_text = data.get("summary", "")
+        if summary_text:
+            summary_elem = fe._find_by_cls(soup, 'summary', 'about-text', 'profile-text', 'bio', 'objective', 'summary-text')
+            if not summary_elem:
+                hdr = soup.find(lambda t: fe._is_header_matching(t, 'summary', 'about', 'profile', 'objective'))
+                if hdr:
+                    candidate = hdr.find_next(['p', 'div'])
+                    # Don't grab another section header
+                    if candidate and not candidate.find(['h2', 'h3']):
+                        summary_elem = candidate
+            fe._set_text(summary_elem, summary_text)
 
-        # 4. Experience Section
-        exp_container = soup.find(class_=['experience-list', 'experience-container', 'work-experience'])
-        if not exp_container:
-            header = soup.find(lambda tag: tag.name in ['h1', 'h2', 'h3', 'div'] and 
-                              any(x in tag.text.lower() for x in ['experience', 'work history']))
-            if header:
-                exp_container = header.find_parent(['section', 'div'], class_=['section', 'card']) or header.find_next(['div', 'section'])
+        # ── 5. Experience ─────────────────────────────────────────────────────
+        exp_data = data.get("experience", [])
+        if exp_data:
+            exp_section = fe._find_by_cls(soup, 'experience-list', 'experience-container', 'work-experience', 'work-history', 'jobs-list')
+            if not exp_section:
+                hdr = soup.find(lambda t: fe._is_header_matching(t, 'experience', 'work history', 'employment', 'career'))
+                if hdr:
+                    exp_section = hdr.find_parent(['section', 'article']) or hdr.parent
 
-        if exp_container and data.get("experience"):
-            template = exp_container.find(class_=['entry', 'experience-item'])
-            if template:
-                # Remove existing entries
-                for entry in exp_container.find_all(class_=['entry', 'experience-item']):
-                    entry.decompose()
-                
-                for item in data["experience"]:
-                    new_entry = BeautifulSoup(str(template), 'html.parser').find()
-                    
-                    role = new_entry.find(class_=['position', 'role', 'job-title'])
-                    if role: role.string = item["role"]
-                    
-                    company = new_entry.find(class_=['organization', 'company', 'employer'])
-                    if company: company.string = item["company"]
-                    
-                    date = new_entry.find(class_=['date', 'period'])
-                    if date: date.string = item["date"]
-                    
-                    desc_list = new_entry.find('ul')
-                    if desc_list:
-                        desc_list.clear()
-                        for highlight in item["highlights"]:
-                            li = soup.new_tag('li')
-                            li.string = highlight
-                            desc_list.append(li)
-                    
-                    exp_container.append(new_entry)
+            if exp_section:
+                # Find first entry element to use as clone template
+                entry_tmpl = exp_section.find(lambda t: fe._cls_match(t, 'entry', 'experience-item', 'job-item', 'work-item', 'position-block'))
 
-        # 5. Education Section
-        edu_container = soup.find(class_=['education-list', 'education-container'])
-        if not edu_container:
-            header = soup.find(lambda tag: tag.name in ['h1', 'h2', 'h3', 'div'] and 'education' in tag.text.lower())
-            if header:
-                edu_container = header.find_parent(['section', 'div'], class_=['section', 'card']) or header.find_next(['div', 'section'])
+                if entry_tmpl:
+                    entry_classes = entry_tmpl.get('class', [])
+                    for e in exp_section.find_all(class_=entry_classes):
+                        e.decompose()
 
-        if edu_container and data.get("education"):
-            template = edu_container.find(class_=['entry', 'education-item'])
-            if template:
-                for entry in edu_container.find_all(class_=['entry', 'education-item']):
-                    entry.decompose()
-                
-                for item in data["education"]:
-                    new_entry = BeautifulSoup(str(template), 'html.parser').find()
-                    degree = new_entry.find(class_=['position', 'degree'])
-                    if degree: degree.string = item["degree"]
-                    details = new_entry.find(class_=['organization', 'details', 'edu-details'])
-                    if details: details.string = item.get("details", "")
-                    edu_container.append(new_entry)
+                    for item in exp_data:
+                        new_e = copy.copy(entry_tmpl)
+                        if new_e is None: continue
 
-        # 6. Skills Section (The tricky one)
-        skills_container = soup.find(class_=['skills-grid', 'skills-list', 'skills-container', 'skill-tags'])
-        if not skills_container:
-            header = soup.find(lambda tag: tag.name in ['h1', 'h2', 'h3', 'div'] and 'skills' in tag.text.lower())
-            if header:
-                # Find the actual grid/list within the section
-                section = header.find_parent(['section', 'div'], class_=['section', 'card'])
-                if section:
-                    skills_container = section.find(class_=['skills-grid', 'skills-list', 'skills-container', 'skill-tags']) or section
-                else:
-                    skills_container = header.find_next(['div', 'ul'])
+                        role_el = new_e.find(lambda t: fe._cls_match(t, 'position', 'role', 'job-title', 'work-title'))
+                        fe._set_text(role_el, item.get("role", ""))
 
-        if skills_container and data.get("skills"):
-            # Try to find a template for a single skill
-            item_template = skills_container.find(class_=['skill-tag', 'skill-item', 'skill-box'])
-            if item_template:
-                # Clean up existing items
-                for item in skills_container.find_all(class_=['skill-tag', 'skill-item', 'skill-box']):
-                    item.decompose()
-                
-                for skill in data["skills"]:
-                    new_item = BeautifulSoup(str(item_template), 'html.parser').find()
-                    if not new_item:
-                        continue
-                        
-                    classes = new_item.get('class', [])
-                    if not isinstance(classes, list):
-                        classes = [classes] if classes else []
-                        
-                    # If it's a simple tag, set string
-                    if 'skill-tag' in classes or 'skill-item' in classes:
-                        new_item.string = skill
-                    else:
-                        # Find title or list within box
-                        title = new_item.find(class_=['skill-title', 'skill-label'])
-                        if title: 
-                            title.string = skill
+                        co_el = new_e.find(lambda t: fe._cls_match(t, 'organization', 'company', 'employer', 'workplace'))
+                        fe._set_text(co_el, item.get("company", ""))
+
+                        date_el = new_e.find(lambda t: fe._cls_match(t, 'date', 'period', 'duration', 'tenure'))
+                        fe._set_text(date_el, item.get("date", ""))
+
+                        ul = new_e.find('ul')
+                        if ul:
+                            ul.clear()
+                            for hl in item.get("highlights", []):
+                                li = soup.new_tag('li')
+                                li.string = hl
+                                ul.append(li)
                         else:
-                            new_item.string = skill
-                    skills_container.append(new_item)
-            else:
-                # Fallback: simple bullet list or clearing
-                skills_container.clear()
-                for skill in data["skills"]:
-                    span = soup.new_tag('span', attrs={'class': 'skill-tag'})
-                    span.string = skill
-                    skills_container.append(span)
+                            desc_el = new_e.find(lambda t: fe._cls_match(t, 'description', 'entry-description', 'details'))
+                            fe._set_text(desc_el, ' '.join(item.get("highlights", [])))
+
+                        exp_section.append(new_e)
+                else:
+                    # No clonable entry — build raw HTML blocks
+                    hdr_tag = exp_section.find(lambda t: t.name in ['h2', 'h3'] and
+                                               any(x in t.get_text().lower() for x in ['experience', 'work']))
+                    exp_section.clear()
+                    if hdr_tag:
+                        exp_section.append(hdr_tag)
+                    for item in exp_data:
+                        highlights_html = ''.join(f'<li>{h}</li>' for h in item.get("highlights", []))
+                        block = BeautifulSoup(
+                            f'<div class="entry">'
+                            f'<div class="entry-header">'
+                            f'<div><div class="position">{item.get("role","")}</div>'
+                            f'<div class="organization">{item.get("company","")}</div></div>'
+                            f'<div class="date">{item.get("date","")}</div></div>'
+                            f'<div class="entry-description"><ul>{highlights_html}</ul></div></div>',
+                            'html.parser'
+                        )
+                        exp_section.append(block)
+
+        # ── 6. Education ──────────────────────────────────────────────────────
+        edu_data = data.get("education", [])
+        if edu_data:
+            edu_section = fe._find_by_cls(soup, 'education-list', 'education-container', 'edu-list')
+            if not edu_section:
+                hdr = soup.find(lambda t: fe._is_header_matching(t, 'education'))
+                if hdr:
+                    edu_section = hdr.find_parent(['section', 'article']) or hdr.parent
+
+            if edu_section:
+                entry_tmpl = edu_section.find(lambda t: fe._cls_match(t, 'entry', 'education-item', 'edu-item'))
+                if entry_tmpl:
+                    for e in edu_section.find_all(class_=entry_tmpl.get('class', [])):
+                        e.decompose()
+                    for item in edu_data:
+                        new_e = copy.copy(entry_tmpl)
+                        if new_e is None: continue
+                        deg_el = new_e.find(lambda t: fe._cls_match(t, 'position', 'degree', 'qualification'))
+                        fe._set_text(deg_el, item.get("degree", ""))
+                        det_el = new_e.find(lambda t: fe._cls_match(t, 'organization', 'institution', 'school', 'details', 'edu-details'))
+                        fe._set_text(det_el, item.get("details", ""))
+                        edu_section.append(new_e)
+
+        # ── 7. Skills ─────────────────────────────────────────────────────────
+        skills_data = data.get("skills", [])
+        if skills_data:
+            skills_container = fe._find_by_cls(soup, 'skills-grid', 'skills-list', 'skills-container', 'skill-tags', 'skills-wrapper', 'tech-stack')
+            if not skills_container:
+                hdr = soup.find(lambda t: fe._is_header_matching(t, 'skill'))
+                if hdr:
+                    section = hdr.find_parent(['section', 'article'])
+                    if section:
+                        skills_container = (
+                            fe._find_by_cls(section, 'skills-grid', 'skills-list', 'skill-tags')
+                            or section
+                        )
+                    else:
+                        skills_container = hdr.find_next(['div', 'ul'])
+
+            if skills_container:
+                item_tmpl = skills_container.find(lambda t: fe._cls_match(t, 'skill-tag', 'skill-item', 'skill-box', 'skill-badge', 'tag'))
+                if item_tmpl:
+                    for e in skills_container.find_all(class_=item_tmpl.get('class', [])):
+                        e.decompose()
+                    for skill in skills_data:
+                        new_i = copy.copy(item_tmpl)
+                        if new_i is None: continue
+                        label_el = new_i.find(lambda t: fe._cls_match(t, 'skill-label', 'skill-title', 'label'))
+                        value_el = new_i.find(lambda t: fe._cls_match(t, 'skill-value', 'skill-text', 'value'))
+                        if label_el:
+                            label_el.clear()
+                            label_el.string = skill
+                            if value_el:
+                                value_el.clear()
+                        else:
+                            new_i.clear()
+                            new_i.string = skill
+                        skills_container.append(new_i)
+                else:
+                    skills_container.clear()
+                    for skill in skills_data:
+                        span = soup.new_tag('span', attrs={'class': 'skill-tag'})
+                        span.string = skill
+                        skills_container.append(span)
+                        skills_container.append(BeautifulSoup(' ', 'html.parser'))
+
+        # ── 8. Fallback: embed rendered markdown if injection failed ──────────
+        # Check if the name was actually injected (not a placeholder)
+        PLACEHOLDER_NAMES = {'sarah chen', 'john doe', 'your name', 'jane doe', 'alex johnson', ''}
+        name_check = fe._find_by_cls(soup, 'name', 'candidate-name', 'full-name', 'hero-name')
+        injected = (
+            name_check is not None and
+            name_check.get_text(strip=True).lower() not in PLACEHOLDER_NAMES
+        )
+
+        if not injected and data.get("name", "Anonymous") != "Anonymous":
+            md_html = markdown.markdown(
+                ResumeEngine._data_to_markdown(data),
+                extensions=['extra', 'nl2br']
+            )
+            fallback_css = """
+            <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; color: #222; line-height: 1.7; padding: 40px; }
+            h1 { font-size: 28px; margin-bottom: 4px; }
+            h2 { font-size: 18px; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 24px; }
+            h3 { font-size: 14px; margin-bottom: 2px; }
+            ul { margin: 8px 0 8px 20px; }
+            li { margin-bottom: 4px; }
+            p { margin: 6px 0; }
+            </style>
+            """
+            # Try to embed inside the template's <style> and <body>
+            style_tag = soup.find('style')
+            if style_tag:
+                style_tag.insert_after(BeautifulSoup(fallback_css, 'html.parser'))
+
+            main_container = (
+                soup.find(class_=lambda c: c and any(x in c for x in ['container', 'resume', 'page', 'wrapper']))
+                or soup.find('main')
+                or soup.body
+            )
+            if main_container:
+                main_container.clear()
+                main_container.append(BeautifulSoup(md_html, 'html.parser'))
 
         return str(soup)
+
+    @staticmethod
+    def _data_to_markdown(data):
+        """Convert structured resume data back to clean markdown (used for fallback rendering)."""
+        lines = []
+        name = data.get("name", "")
+        title = data.get("title", "")
+        contact = data.get("contact", {})
+
+        if name:
+            lines.append(f"# {name}")
+        contact_parts = [title] if title else []
+        for k in ['email', 'phone', 'linkedin', 'github']:
+            if contact.get(k):
+                contact_parts.append(contact[k])
+        if contact_parts:
+            lines.append(' | '.join(contact_parts))
+        lines.append('')
+
+        if data.get("summary"):
+            lines.append("## Professional Summary")
+            lines.append(data["summary"])
+            lines.append('')
+
+        if data.get("experience"):
+            lines.append("## Experience")
+            for exp in data["experience"]:
+                company = exp.get('company', '')
+                role = exp.get('role', '')
+                heading = f"{role} | {company}" if company else role
+                lines.append(f"### {heading}")
+                if exp.get('date'):
+                    lines.append(f"*{exp['date']}*")
+                for h in exp.get("highlights", []):
+                    lines.append(f"- {h}")
+                lines.append('')
+
+        if data.get("education"):
+            lines.append("## Education")
+            for edu in data["education"]:
+                lines.append(f"### {edu.get('degree','')}")
+                if edu.get('details'):
+                    lines.append(edu['details'])
+                lines.append('')
+
+        if data.get("skills"):
+            lines.append("## Skills")
+            lines.append(', '.join(data["skills"]))
+            lines.append('')
+
+        if data.get("projects"):
+            lines.append("## Projects")
+            for proj in data["projects"]:
+                lines.append(f"### {proj.get('name','')}")
+                if proj.get('details'):
+                    lines.append(proj['details'])
+                lines.append('')
+
+        if data.get("awards"):
+            lines.append("## Awards & Certifications")
+            for award in data["awards"]:
+                lines.append(f"### {award.get('name','')}")
+                if award.get('details'):
+                    lines.append(award['details'])
+                lines.append('')
+
+        return '\n'.join(lines)
