@@ -83,20 +83,34 @@ p {
 }
 """
 
+@st.cache_resource(show_spinner=False)
 def ensure_playwright_browsers():
-    """Ensure Playwright browsers are installed, especially for Streamlit Cloud."""
+    """Ensure Playwright browsers and system deps are installed (runs once per session)."""
+    import subprocess
     try:
+        # First try launching — if it works, nothing to do
         with sync_playwright() as p:
             browser = p.chromium.launch()
             browser.close()
+        return True
     except Exception:
-        import subprocess
-        try:
-            st.info("Playwright browser binaries missing. Installing Chromium... this may take a moment.")
-            subprocess.run(["playwright", "install", "chromium"], check=True)
-            st.success("Chromium installed successfully!")
-        except Exception as e:
-            st.error(f"Failed to install Playwright browsers: {e}")
+        pass
+
+    # Install system-level shared libraries (needed on Streamlit Cloud / Linux)
+    try:
+        subprocess.run(["playwright", "install-deps", "chromium"], check=True,
+                       capture_output=True)
+    except Exception:
+        pass  # May fail on Windows/Mac — that's fine, libs are already there
+
+    # Install the browser binaries
+    try:
+        subprocess.run(["playwright", "install", "chromium"], check=True,
+                       capture_output=True)
+    except Exception as e:
+        return False
+
+    return True
 
 def generate_pdf_local(markdown_content):
     """Generate PDF using available method (WeasyPrint or markdown_pdf)."""
@@ -234,30 +248,35 @@ def generate_themed_pdf(markdown_content, theme_name='modern'):
 def generate_html_pdf(markdown_content, template_path=None):
     """Generate PDF using HTML templates and ResumeEngine via Playwright."""
     if PDF_METHOD != "playwright":
-        st.error("Playwright is required for high-fidelity HTML templates. Using basic fallback.")
         return generate_pdf_local(markdown_content)
         
     try:
         if not template_path:
-            # Default to first available template if none provided
             template_path = list(HTML_TEMPLATES.values())[0]
             
         engine = ResumeEngine()
         data = engine.parse_markdown(markdown_content)
         html_rendered = engine.render_html(template_path, data)
         
-        ensure_playwright_browsers()
+        ready = ensure_playwright_browsers()
+        if not ready:
+            st.warning("⚠️ Chromium could not be set up. Generating a basic PDF instead.")
+            return generate_pdf_local(markdown_content)
+
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page()
             page.set_content(html_rendered)
-            # Ensure images and styles are loaded
             page.wait_for_load_state("networkidle")
-            pdf_bytes = page.pdf(format="A4", print_background=True, margin={"top": "0", "bottom": "0", "left": "0", "right": "0"})
+            pdf_bytes = page.pdf(
+                format="A4",
+                print_background=True,
+                margin={"top": "0", "bottom": "0", "left": "0", "right": "0"}
+            )
             browser.close()
             return pdf_bytes
     except Exception as e:
-        st.error(f"High-Fidelity PDF generation failed: {e}")
+        st.error(f"PDF generation error: {e}")
         return generate_pdf_local(markdown_content)
 
 
