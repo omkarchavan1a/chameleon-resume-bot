@@ -376,7 +376,19 @@ class ResumeEngine:
                         skills_container.append(span)
                         skills_container.append(soup.new_string(" "))
 
-        # ── 8. Fallback ───────────────────────────────────────────────────────
+        # ── 8. LLM Analysis / ATS Score ───────────────────────────────────────
+        llm_data = data.get("llm_analysis")
+        if llm_data:
+            # Look for existing analysis section or create one
+            analysis_section = fe._find_by_cls(soup, 'analysis-section', 'ats-section', 'ai-analysis', 'llm-data')
+            if analysis_section:
+                # Update existing section
+                fe._render_llm_analysis(soup, analysis_section, llm_data)
+            else:
+                # Add analysis section at the end of the document
+                fe._inject_llm_analysis_section(soup, llm_data)
+
+        # ── 9. Fallback ───────────────────────────────────────────────────────
         PLACEHOLDER_NAMES = {'sarah chen', 'john doe', 'your name', 'jane doe', 'alex johnson', ''}
         name_check = fe._find_by_cls(soup, 'name', 'candidate-name', 'full-name', 'hero-name')
         injected = (
@@ -391,6 +403,107 @@ class ResumeEngine:
                 main.append(BeautifulSoup(md_html, 'html.parser'))
 
         return str(soup)
+
+    @staticmethod
+    def _render_llm_analysis(soup, section_elem, llm_data):
+        """Render LLM analysis data into an existing section element."""
+        ats_score = llm_data.get("ats_score", 0)
+        keyword_match = llm_data.get("keyword_match", 0)
+        summary = llm_data.get("summary", "")
+        strengths = llm_data.get("strengths", [])
+        improvements = llm_data.get("improvements", [])
+        missing_keywords = llm_data.get("missing_keywords", [])
+
+        # Update score displays
+        for score_elem in section_elem.find_all(class_=lambda c: c and any(x in c for x in ['ats-score', 'score-value'])):
+            score_elem.string = str(ats_score)
+        for match_elem in section_elem.find_all(class_=lambda c: c and any(x in c for x in ['keyword-match', 'match-value'])):
+            match_elem.string = str(keyword_match)
+
+        # Update summary
+        summary_elem = section_elem.find(class_=lambda c: c and any(x in c for x in ['analysis-summary', 'summary-text']))
+        if summary_elem:
+            summary_elem.string = summary
+
+        # Update strengths list
+        strengths_container = section_elem.find(class_=lambda c: c and any(x in c for x in ['strengths-list', 'strengths']))
+        if strengths_container and strengths:
+            strengths_container.clear()
+            for strength in strengths[:3]:
+                li = soup.new_tag('li')
+                li.string = strength
+                strengths_container.append(li)
+
+        # Update improvements list
+        improvements_container = section_elem.find(class_=lambda c: c and any(x in c for x in ['improvements-list', 'improvements']))
+        if improvements_container and improvements:
+            improvements_container.clear()
+            for improvement in improvements[:3]:
+                li = soup.new_tag('li')
+                li.string = improvement
+                improvements_container.append(li)
+
+    @staticmethod
+    def _inject_llm_analysis_section(soup, llm_data):
+        """Inject a new LLM analysis section at the end of the document."""
+        ats_score = llm_data.get("ats_score", 0)
+        keyword_match = llm_data.get("keyword_match", 0)
+        summary = llm_data.get("summary", "")
+        strengths = llm_data.get("strengths", [])
+        improvements = llm_data.get("improvements", [])
+        missing_keywords = llm_data.get("missing_keywords", [])
+
+        # Create analysis section HTML
+        analysis_html = f"""
+        <section class="llm-analysis-section" style="margin-top: 40px; padding: 25px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; border-left: 4px solid #3b82f6;">
+            <h3 style="font-family: 'Space Mono', monospace; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #1e293b; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #cbd5e1;">
+                🤖 AI Analysis & ATS Score
+            </h3>
+            
+            <div style="display: flex; gap: 30px; margin-bottom: 20px; flex-wrap: wrap;">
+                <div style="text-align: center; padding: 15px 25px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <div style="font-size: 32px; font-weight: 700; color: {'#22c55e' if ats_score >= 80 else '#eab308' if ats_score >= 60 else '#ef4444'};">{ats_score}</div>
+                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">ATS Score</div>
+                </div>
+                <div style="text-align: center; padding: 15px 25px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <div style="font-size: 32px; font-weight: 700; color: {'#22c55e' if keyword_match >= 80 else '#eab308' if keyword_match >= 60 else '#ef4444'};">{keyword_match}%</div>
+                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">Keyword Match</div>
+                </div>
+            </div>
+            
+            {f'<p style="font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 20px; font-style: italic;">{summary}</p>' if summary else ''}
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                {f'''<div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4 style="font-size: 12px; color: #22c55e; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">✓ Strengths</h4>
+                    <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #475569; line-height: 1.8;">
+                        {''.join(f'<li>{s}</li>' for s in strengths[:3])}
+                    </ul>
+                </div>''' if strengths else ''}
+                
+                {f'''<div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4 style="font-size: 12px; color: #f59e0b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">⚡ Improvements</h4>
+                    <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #475569; line-height: 1.8;">
+                        {''.join(f'<li>{i}</li>' for i in improvements[:3])}
+                    </ul>
+                </div>''' if improvements else ''}
+            </div>
+            
+            {f'''<div style="margin-top: 15px; padding: 12px 15px; background: #fef3c7; border-radius: 8px; border: 1px solid #fcd34d;">
+                <span style="font-size: 11px; color: #92400e; font-weight: 600;">Missing Keywords: </span>
+                <span style="font-size: 11px; color: #b45309;">{', '.join(missing_keywords[:5])}</span>
+            </div>''' if missing_keywords else ''}
+        </section>
+        """
+        
+        # Find container and append
+        container = soup.find(class_=lambda c: c and any(x in c for x in ['container', 'resume', 'page', 'main-content']))
+        if container:
+            container.append(BeautifulSoup(analysis_html, 'html.parser'))
+        else:
+            body = soup.body
+            if body:
+                body.append(BeautifulSoup(analysis_html, 'html.parser'))
 
     @staticmethod
     def _data_to_markdown(data):

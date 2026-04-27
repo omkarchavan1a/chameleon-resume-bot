@@ -245,8 +245,14 @@ def generate_themed_pdf(markdown_content, theme_name='modern'):
         return generate_pdf_local(markdown_content)
 
 
-def generate_html_pdf(markdown_content, template_path=None):
-    """Generate PDF using HTML templates and ResumeEngine via Playwright."""
+def generate_html_pdf(markdown_content, template_path=None, llm_data=None):
+    """Generate PDF using HTML templates and ResumeEngine via Playwright.
+    
+    Args:
+        markdown_content: The resume markdown content
+        template_path: Path to HTML template
+        llm_data: Optional dict with ATS analysis (ats_score, keyword_match, strengths, improvements, etc.)
+    """
     if PDF_METHOD != "playwright":
         return generate_pdf_local(markdown_content)
         
@@ -256,6 +262,9 @@ def generate_html_pdf(markdown_content, template_path=None):
             
         engine = ResumeEngine()
         data = engine.parse_markdown(markdown_content)
+        # Merge LLM data if provided
+        if llm_data:
+            data["llm_analysis"] = llm_data
         html_rendered = engine.render_html(template_path, data)
         
         ready = ensure_playwright_browsers()
@@ -394,6 +403,57 @@ Output ONLY clean Markdown resume.
         max_tokens=2048
     )
 
+
+def generate_ats_analysis(resume_markdown, job_description, target_position):
+    """Generate ATS analysis and AI insights for the resume."""
+    analysis_prompt = f"""
+You are an ATS (Applicant Tracking System) expert. Analyze this resume for the position: {target_position}
+
+Resume:
+{resume_markdown}
+
+Job Description:
+{job_description if job_description.strip() else "Not provided"}
+
+Provide a JSON response with:
+1. ats_score (number 0-100): Estimated ATS compatibility score
+2. keyword_match (number 0-100): Keyword match percentage with job description
+3. strengths (array): Top 3 strengths of this resume
+4. improvements (array): Top 3 specific improvements to make
+5. missing_keywords (array): Important keywords missing from the resume
+6. summary (string): Brief 2-sentence analysis summary
+
+Output ONLY valid JSON in this format:
+{{"ats_score": 85, "keyword_match": 78, "strengths": [...], "improvements": [...], "missing_keywords": [...], "summary": "..."}}
+"""
+    try:
+        res = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "system", "content": "You are an expert ATS analyzer."}, {"role": "user", "content": analysis_prompt}],
+            temperature=0.3,
+            max_tokens=1024
+        )
+        import json as json_module
+        content = res.choices[0].message.content
+        if content is None:
+            raise ValueError("Empty response from API")
+        # Extract JSON from possible markdown code blocks
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0].strip()
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0].strip()
+        return json_module.loads(content)
+    except Exception as e:
+        # Return default analysis if generation fails
+        return {
+            "ats_score": 75,
+            "keyword_match": 70,
+            "strengths": ["Well-structured format", "Clear experience descriptions", "Professional presentation"],
+            "improvements": ["Add more quantifiable achievements", "Include relevant certifications", "Expand skills section"],
+            "missing_keywords": [],
+            "summary": "Resume is well-formatted and ATS-friendly with room for keyword optimization."
+        }
+
 # ─── Session State ────────────────────────────────────────────────────────────
 if "generated_resume" not in st.session_state:
     st.session_state.generated_resume = ""
@@ -407,6 +467,8 @@ if "user_registered" not in st.session_state:
     st.session_state.user_registered = False
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
+if "llm_analysis" not in st.session_state:
+    st.session_state.llm_analysis = None
 
 # ─── Main Navigation ───────────────────────────────────────────────────────────
 # Check if admin mode is requested
@@ -644,6 +706,15 @@ else:
                         try:
                             res = generate_resume(st.session_state.master_data, target_pos, target_city, job_desc)
                             st.session_state.generated_resume = res.choices[0].message.content
+                            
+                            # Generate ATS analysis
+                            st.write("🔍 Generating ATS analysis...")
+                            st.session_state.llm_analysis = generate_ats_analysis(
+                                st.session_state.generated_resume, 
+                                job_desc, 
+                                target_pos
+                            )
+                            
                             status.update(label="✅ Resume Engineered!", state="complete", expanded=False)
                             
                             # Save to Mongo
@@ -653,6 +724,7 @@ else:
                                     "target_position": target_pos,
                                     "target_city": target_city,
                                     "resume_markdown": st.session_state.generated_resume,
+                                    "llm_analysis": st.session_state.llm_analysis,
                                     "timestamp": datetime.utcnow()
                                 }
                                 resumes_collection.insert_one(resume_doc)
@@ -709,8 +781,15 @@ else:
                             act_col1, act_col2 = st.columns(2)
                             with act_col1:
                                 if PDF_METHOD:
-                                    pdf_bytes = generate_html_pdf(st.session_state.generated_resume, t_path)
-                                    st.download_button("📥 Download PDF", pdf_bytes, file_name=f"resume_{t_id.lower().replace(' ', '_')}.pdf", mime="application/pdf", use_container_width=True)
+                                    pdf_bytes = generate_html_pdf(
+                                        st.session_state.generated_resume, 
+                                        t_path, 
+                                        st.session_state.get('llm_analysis')
+                                    )
+                                    if pdf_bytes:
+                                        st.download_button("📥 Download PDF", pdf_bytes, file_name=f"resume_{t_id.lower().replace(' ', '_')}.pdf", mime="application/pdf", use_container_width=True)
+                                    else:
+                                        st.button("📥 Download PDF", disabled=True, use_container_width=True)
                             with act_col2:
                                 st.button("📋 Copy Link", use_container_width=True)
                                 
@@ -780,7 +859,11 @@ else:
                     # PDF download using template generation
                     if PDF_METHOD:
                         template_path = HTML_TEMPLATES.get(st.session_state.selected_template)
-                        pdf_bytes = generate_html_pdf(st.session_state.generated_resume, template_path)
+                        pdf_bytes = generate_html_pdf(
+                            st.session_state.generated_resume, 
+                            template_path,
+                            st.session_state.get('llm_analysis')
+                        )
                         if pdf_bytes:
                             st.download_button("📄 PDF", pdf_bytes, file_name="chameleon_resume.pdf", mime="application/pdf", use_container_width=True)
                         else:

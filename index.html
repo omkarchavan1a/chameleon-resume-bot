@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chameleon Resume Bot | Crowntech</title>
+    <!-- Gatekeeper MUST be first -->
+    <script src="../gatekeeper.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    
+    <nav>
+        <a href="../index.html" class="logo">Crowntech</a>
+        <div class="nav-links">
+            <a href="../dashboard.html">Dashboard</a>
+            <a href="../pricing.html">Subscription</a>
+        </div>
+    </nav>
+
+    <div class="admin-container fade-in">
+        <header style="margin-bottom: 3rem; text-align: center;">
+            <div style="color: var(--chameleon-green); font-weight: 800; letter-spacing: 2px; font-size: 0.8rem; margin-bottom: 1rem;">PREMIUM TOOL</div>
+            <h1>Chameleon <span>Resume Bot</span></h1>
+            <p style="color: var(--text-secondary);">Adapt your resume to any job description with AI-driven ATS optimization.</p>
+        </header>
+
+        <!-- Step 1: Input -->
+        <div id="step-input" class="resume-workspace">
+            <div class="split-editor">
+                <div class="editor-pane">
+                    <div class="pane-label">Your Current Resume</div>
+                    <textarea id="resume-input" class="input-area" placeholder="Paste your current resume text here..."></textarea>
+                </div>
+                <div class="editor-pane">
+                    <div class="pane-label">Job Description</div>
+                    <textarea id="jd-input" class="input-area" placeholder="Paste the job description you're targeting..."></textarea>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 2rem;">
+                <button id="start-analysis" class="btn btn-primary" style="padding: 1.2rem 4rem; background: var(--chameleon-green);">Start Chameleon Scan</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Scanning Animation -->
+        <div id="step-scan" class="scan-container">
+            <div class="chameleon-eye"></div>
+            <h2>Chameleon is <span>Analyzing...</span></h2>
+            <p style="color: var(--text-secondary); max-width: 400px; margin: 0 auto;">Identifying missing keywords, required skills, and ATS bottlenecks in your profile.</p>
+            <div id="scan-progress" style="width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 2rem; overflow: hidden;">
+                <div id="scan-bar" style="width: 0%; height: 100%; background: var(--chameleon-green); transition: width 0.1s linear;"></div>
+            </div>
+        </div>
+
+        <!-- Step 3: Comparison -->
+        <div id="step-result" class="resume-workspace" style="display: none;">
+            <div class="comparison-grid" style="display: grid;">
+                <div style="text-align: center;">
+                    <div class="pane-label" style="margin-bottom: 1rem;">Original</div>
+                    <div class="resume-preview" id="original-preview">
+                        <!-- Content injected via JS -->
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div class="pane-label" style="margin-bottom: 1rem;">Chameleon Optimized</div>
+                    <div class="resume-preview" id="optimized-preview">
+                        <div class="optimized-badge">ATS Score: 98%</div>
+                        <!-- Content injected via JS -->
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 3rem;">
+                <button class="btn btn-outline" onclick="location.reload()">Start New Optimization</button>
+                <button class="btn btn-primary" style="background: var(--chameleon-green); margin-left: 1rem;">Download Optimized PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
