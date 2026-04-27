@@ -745,7 +745,7 @@ else:
                     st.rerun()
             else:
                 # Preview mode selection
-                p_tabs = st.tabs(["✨ Preview", "🎨 Design Gallery", "📝 Source"])
+                p_tabs = st.tabs(["✨ Preview", "🎨 Design Gallery", "📝 Source", "🤖 AI Analysis"])
                 
                 with p_tabs[0]:
                     # Mini Gallery Selection
@@ -873,6 +873,38 @@ else:
                 with dcol3:
                     if st.button("📋 Copy", use_container_width=True):
                         st.toast("Copied to clipboard! (Simulated)")
+
+                with p_tabs[3]:
+                    st.markdown("### 🤖 AI Analysis & ATS Score")
+                    llm_data = st.session_state.get('llm_analysis')
+                    if llm_data:
+                        col1, col2 = st.columns(2)
+                        ats_score = llm_data.get('ats_score', 0)
+                        keyword_match = llm_data.get('keyword_match', 0)
+                        
+                        with col1:
+                            st.metric("ATS Score", f"{ats_score}/100", delta=None)
+                        with col2:
+                            st.metric("Keyword Match", f"{keyword_match}%", delta=None)
+                        
+                        if llm_data.get('summary'):
+                            st.info(llm_data.get('summary'))
+                        
+                        scol1, scol2 = st.columns(2)
+                        with scol1:
+                            st.markdown("**✓ Strengths**")
+                            for s in llm_data.get('strengths', [])[:3]:
+                                st.success(s)
+                        with scol2:
+                            st.markdown("**⚡ Improvements**")
+                            for i in llm_data.get('improvements', [])[:3]:
+                                st.warning(i)
+                        
+                        if llm_data.get('missing_keywords'):
+                            st.markdown("**📝 Missing Keywords**")
+                            st.error(", ".join(llm_data.get('missing_keywords', [])[:5]))
+                    else:
+                        st.info("Generate a resume to see AI analysis.")
 
     with tab_hist:
         st.markdown("### 📜 Generation Archive")
