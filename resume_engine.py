@@ -445,13 +445,18 @@ class ResumeEngine:
             fe._inject_llm_analysis_section(soup, llm_data)
 
         # ── 9. Fallback ───────────────────────────────────────────────────────
-        PLACEHOLDER_NAMES = {'sarah chen', 'john doe', 'your name', 'jane doe', 'alex johnson', ''}
+        PLACEHOLDER_NAMES = {'sarah chen', 'john doe', 'your name', 'jane doe', 'alex johnson'}
         name_check = fe._find_by_cls(soup, 'name', 'candidate-name', 'full-name', 'hero-name')
+        name_text = name_check.get_text(strip=True) if name_check else ""
+        data_name = data.get("name", "")
+        # Check if name was properly injected (not empty and not a placeholder)
         injected = (
             name_check is not None and
-            name_check.get_text(strip=True).lower() not in PLACEHOLDER_NAMES
+            name_text and
+            name_text.lower() not in PLACEHOLDER_NAMES and
+            name_text.lower() == data_name.lower()
         )
-        if not injected and data.get("name", "Anonymous") != "Anonymous":
+        if not injected and data_name and data_name != "Anonymous":
             md_html = markdown.markdown(ResumeEngine._data_to_markdown(data), extensions=['extra', 'nl2br'])
             main = soup.find(class_=lambda c: c and any(x in c for x in ['container', 'resume', 'page'])) or soup.body
             if main:
