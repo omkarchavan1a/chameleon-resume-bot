@@ -376,7 +376,12 @@ class ResumeEngine:
                         skills_container.append(span)
                         skills_container.append(soup.new_string(" "))
 
-        # ── 8. Fallback ───────────────────────────────────────────────────────
+        # ── 8. LLM Analysis / ATS Score ───────────────────────────────────────
+        llm_data = data.get("llm_analysis")
+        if llm_data:
+            fe._inject_llm_analysis_section(soup, llm_data)
+
+        # ── 9. Fallback ───────────────────────────────────────────────────────
         PLACEHOLDER_NAMES = {'sarah chen', 'john doe', 'your name', 'jane doe', 'alex johnson', ''}
         name_check = fe._find_by_cls(soup, 'name', 'candidate-name', 'full-name', 'hero-name')
         injected = (

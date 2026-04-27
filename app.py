@@ -323,6 +323,15 @@ def get_db_collections():
             )
             mongo_client.admin.command('ping')
             db = mongo_client[DB_NAME]
+            # Create TTL index to auto-delete resumes after 12 days (1036800 seconds)
+            try:
+                db.resumes.create_index(
+                    [("timestamp", 1)],
+                    expireAfterSeconds=1036800,  # 12 days
+                    background=True
+                )
+            except Exception:
+                pass  # Index may already exist
             return db.resumes, db.users
         except Exception as e:
             st.warning(f"Could not connect to MongoDB: {str(e)}")
