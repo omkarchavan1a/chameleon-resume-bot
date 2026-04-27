@@ -233,6 +233,15 @@ class ResumeEngine:
         return any(kw in text for kw in keywords)
 
     @staticmethod
+    def _hide_section_if_empty(soup, section, data_list):
+        """Hide or remove a section if there's no data."""
+        if not data_list or len(data_list) == 0:
+            if section:
+                section.decompose()
+            return True
+        return False
+
+    @staticmethod
     def render_html(template_path, data):
         """
         Inject structured resume data into an HTML template.
@@ -281,163 +290,171 @@ class ResumeEngine:
 
         # ── 4. Summary ───────────────────────────────────────────────────────
         summary_text = data.get("summary", "")
-        if summary_text:
-            summary_elem = fe._find_by_cls(soup, 'summary', 'about-text', 'profile-text', 'bio', 'objective', 'summary-text')
-            if not summary_elem:
-                hdr = soup.find(lambda t: fe._is_header_matching(t, 'summary', 'about', 'profile', 'objective'))
-                if hdr:
+        summary_elem = fe._find_by_cls(soup, 'summary', 'about-text', 'profile-text', 'bio', 'objective', 'summary-text')
+        if not summary_elem:
+            hdr = soup.find(lambda t: fe._is_header_matching(t, 'summary', 'about', 'profile', 'objective'))
+            if hdr:
+                summary_section = hdr.find_parent(['section', 'article']) or hdr.parent
+                if not summary_text:
+                    fe._hide_section_if_empty(soup, summary_section, [])
+                else:
                     candidate = hdr.find_next(['p', 'div'])
                     if candidate and not candidate.find(['h2', 'h3']):
                         summary_elem = candidate
+        if summary_text and summary_elem:
             fe._set_text(summary_elem, summary_text)
 
         # ── 5. Experience ─────────────────────────────────────────────────────
         exp_data = data.get("experience", [])
-        if exp_data:
-            exp_section = fe._find_by_cls(soup, 'experience-list', 'experience-container', 'work-experience', 'work-history', 'jobs-list')
-            if not exp_section:
-                hdr = soup.find(lambda t: fe._is_header_matching(t, 'experience', 'work history', 'employment', 'career'))
-                if hdr:
-                    exp_section = hdr.find_parent(['section', 'article']) or hdr.parent
-
-            if exp_section:
-                entry_tmpl = exp_section.find(lambda t: fe._cls_match(t, 'entry', 'experience-item', 'job-item', 'work-item', 'position-block'))
-                if entry_tmpl:
-                    tmpl_clone = copy.copy(entry_tmpl)
-                    entry_classes = entry_tmpl.get('class', [])
-                    for e in exp_section.find_all(class_=entry_classes):
-                        e.decompose()
-                    for item in exp_data:
-                        new_e = copy.copy(tmpl_clone)
-                        if new_e is None: continue
-                        role_el = new_e.find(lambda t: fe._cls_match(t, 'position', 'role', 'job-title', 'work-title'))
-                        fe._set_text(role_el, item.get("role", ""))
-                        co_el = new_e.find(lambda t: fe._cls_match(t, 'organization', 'company', 'employer', 'workplace'))
-                        fe._set_text(co_el, item.get("company", ""))
-                        date_el = new_e.find(lambda t: fe._cls_match(t, 'date', 'period', 'duration', 'tenure'))
-                        fe._set_text(date_el, item.get("date", ""))
-                        ul = new_e.find('ul')
-                        if ul:
-                            ul.clear()
-                            for hl in item.get("highlights", []):
-                                li = soup.new_tag('li')
-                                li.string = hl
-                                ul.append(li)
-                        else:
-                            desc_el = new_e.find(lambda t: fe._cls_match(t, 'description', 'entry-description', 'details'))
-                            fe._set_text(desc_el, ' '.join(item.get("highlights", [])))
-                        exp_section.append(new_e)
+        exp_section = fe._find_by_cls(soup, 'experience-list', 'experience-container', 'work-experience', 'work-history', 'jobs-list')
+        if not exp_section:
+            hdr = soup.find(lambda t: fe._is_header_matching(t, 'experience', 'work history', 'employment', 'career'))
+            if hdr:
+                exp_section = hdr.find_parent(['section', 'article']) or hdr.parent
+        if fe._hide_section_if_empty(soup, exp_section, exp_data):
+            pass  # Section hidden
+        elif exp_data and exp_section:
+            entry_tmpl = exp_section.find(lambda t: fe._cls_match(t, 'entry', 'experience-item', 'job-item', 'work-item', 'position-block'))
+            if entry_tmpl:
+                tmpl_clone = copy.copy(entry_tmpl)
+                entry_classes = entry_tmpl.get('class', [])
+                for e in exp_section.find_all(class_=entry_classes):
+                    e.decompose()
+                for item in exp_data:
+                    new_e = copy.copy(tmpl_clone)
+                    if new_e is None: continue
+                    role_el = new_e.find(lambda t: fe._cls_match(t, 'position', 'role', 'job-title', 'work-title'))
+                    fe._set_text(role_el, item.get("role", ""))
+                    co_el = new_e.find(lambda t: fe._cls_match(t, 'organization', 'company', 'employer', 'workplace'))
+                    fe._set_text(co_el, item.get("company", ""))
+                    date_el = new_e.find(lambda t: fe._cls_match(t, 'date', 'period', 'duration', 'tenure'))
+                    fe._set_text(date_el, item.get("date", ""))
+                    ul = new_e.find('ul')
+                    if ul:
+                        ul.clear()
+                        for hl in item.get("highlights", []):
+                            li = soup.new_tag('li')
+                            li.string = hl
+                            ul.append(li)
+                    else:
+                        desc_el = new_e.find(lambda t: fe._cls_match(t, 'description', 'entry-description', 'details'))
+                        fe._set_text(desc_el, ' '.join(item.get("highlights", [])))
+                    exp_section.append(new_e)
 
         # ── 5b. Projects ──────────────────────────────────────────────────────
         proj_data = data.get("projects", [])
-        if proj_data:
-            proj_section = fe._find_by_cls(soup, 'projects-list', 'projects-container')
-            if not proj_section:
-                hdr = soup.find(lambda t: fe._is_header_matching(t, 'project', 'key projects'))
-                if hdr:
-                    proj_section = hdr.find_parent(['section', 'article']) or hdr.parent
-
-            if proj_section:
-                entry_tmpl = proj_section.find(lambda t: fe._cls_match(t, 'entry', 'project-item', 'project-block'))
-                if entry_tmpl:
-                    tmpl_clone = copy.copy(entry_tmpl)
-                    entry_classes = entry_tmpl.get('class', [])
-                    for e in proj_section.find_all(class_=entry_classes):
-                        e.decompose()
-                    for item in proj_data:
-                        new_e = copy.copy(tmpl_clone)
-                        if new_e is None: continue
-                        title_el = new_e.find(lambda t: fe._cls_match(t, 'position', 'project-title', 'project-name'))
-                        fe._set_text(title_el, item.get("title", ""))
-                        desc_el = new_e.find(lambda t: fe._cls_match(t, 'organization', 'project-desc'))
-                        fe._set_text(desc_el, item.get("description", ""))
-                        ul = new_e.find('ul')
-                        if ul:
-                            ul.clear()
-                            for hl in item.get("highlights", []):
-                                li = soup.new_tag('li')
-                                li.string = hl
-                                ul.append(li)
-                        proj_section.append(new_e)
+        proj_section = fe._find_by_cls(soup, 'projects-list', 'projects-container')
+        if not proj_section:
+            hdr = soup.find(lambda t: fe._is_header_matching(t, 'project', 'key projects'))
+            if hdr:
+                proj_section = hdr.find_parent(['section', 'article']) or hdr.parent
+        if fe._hide_section_if_empty(soup, proj_section, proj_data):
+            pass  # Section hidden
+        elif proj_data and proj_section:
+            entry_tmpl = proj_section.find(lambda t: fe._cls_match(t, 'entry', 'project-item', 'project-block'))
+            if entry_tmpl:
+                tmpl_clone = copy.copy(entry_tmpl)
+                entry_classes = entry_tmpl.get('class', [])
+                for e in proj_section.find_all(class_=entry_classes):
+                    e.decompose()
+                for item in proj_data:
+                    new_e = copy.copy(tmpl_clone)
+                    if new_e is None: continue
+                    title_el = new_e.find(lambda t: fe._cls_match(t, 'position', 'project-title', 'project-name'))
+                    fe._set_text(title_el, item.get("title", ""))
+                    desc_el = new_e.find(lambda t: fe._cls_match(t, 'organization', 'project-desc'))
+                    fe._set_text(desc_el, item.get("description", ""))
+                    ul = new_e.find('ul')
+                    if ul:
+                        ul.clear()
+                        for hl in item.get("highlights", []):
+                            li = soup.new_tag('li')
+                            li.string = hl
+                            ul.append(li)
+                    proj_section.append(new_e)
 
         # ── 5c. Achievements ──────────────────────────────────────────────────
         awards_data = data.get("awards", [])
-        if awards_data:
-            awards_section = fe._find_by_cls(soup, 'achievements-list', 'awards-container')
-            if not awards_section:
-                hdr = soup.find(lambda t: fe._is_header_matching(t, 'achievement', 'achievements', 'awards'))
-                if hdr:
-                    awards_section = hdr.find_parent(['section', 'article']) or hdr.parent
-            if awards_section:
-                ul = awards_section.find('ul')
-                if ul:
-                    ul.clear()
-                    for award in awards_data:
-                        li = soup.new_tag('li')
-                        li.string = award
-                        ul.append(li)
-                else:
-                    desc_el = awards_section.find(lambda t: fe._cls_match(t, 'description', 'entry-description'))
-                    fe._set_text(desc_el, '\n'.join(awards_data))
+        awards_section = fe._find_by_cls(soup, 'achievements-list', 'awards-container')
+        if not awards_section:
+            hdr = soup.find(lambda t: fe._is_header_matching(t, 'achievement', 'achievements', 'awards'))
+            if hdr:
+                awards_section = hdr.find_parent(['section', 'article']) or hdr.parent
+        if fe._hide_section_if_empty(soup, awards_section, awards_data):
+            pass  # Section hidden
+        elif awards_data and awards_section:
+            ul = awards_section.find('ul')
+            if ul:
+                ul.clear()
+                for award in awards_data:
+                    li = soup.new_tag('li')
+                    li.string = award
+                    ul.append(li)
+            else:
+                desc_el = awards_section.find(lambda t: fe._cls_match(t, 'description', 'entry-description'))
+                fe._set_text(desc_el, '\n'.join(awards_data))
 
         # ── 6. Education ──────────────────────────────────────────────────────
         edu_data = data.get("education", [])
-        if edu_data:
-            edu_section = fe._find_by_cls(soup, 'education-list', 'education-container', 'edu-list')
-            if not edu_section:
-                hdr = soup.find(lambda t: fe._is_header_matching(t, 'education'))
-                if hdr:
-                    edu_section = hdr.find_parent(['section', 'article']) or hdr.parent
-            if edu_section:
-                entry_tmpl = edu_section.find(lambda t: fe._cls_match(t, 'entry', 'education-item', 'edu-item'))
-                if entry_tmpl:
-                    tmpl_clone = copy.copy(entry_tmpl)
-                    for e in edu_section.find_all(class_=entry_tmpl.get('class', [])):
-                        e.decompose()
-                    for item in edu_data:
-                        new_e = copy.copy(tmpl_clone)
-                        if new_e is None: continue
-                        deg_el = new_e.find(lambda t: fe._cls_match(t, 'position', 'degree', 'qualification'))
-                        fe._set_text(deg_el, item.get("degree", ""))
-                        det_el = new_e.find(lambda t: fe._cls_match(t, 'organization', 'institution', 'school', 'details', 'edu-details'))
-                        fe._set_text(det_el, item.get("details", ""))
-                        edu_section.append(new_e)
+        edu_section = fe._find_by_cls(soup, 'education-list', 'education-container', 'edu-list')
+        if not edu_section:
+            hdr = soup.find(lambda t: fe._is_header_matching(t, 'education'))
+            if hdr:
+                edu_section = hdr.find_parent(['section', 'article']) or hdr.parent
+        if fe._hide_section_if_empty(soup, edu_section, edu_data):
+            pass  # Section hidden
+        elif edu_data and edu_section:
+            entry_tmpl = edu_section.find(lambda t: fe._cls_match(t, 'entry', 'education-item', 'edu-item'))
+            if entry_tmpl:
+                tmpl_clone = copy.copy(entry_tmpl)
+                for e in edu_section.find_all(class_=entry_tmpl.get('class', [])):
+                    e.decompose()
+                for item in edu_data:
+                    new_e = copy.copy(tmpl_clone)
+                    if new_e is None: continue
+                    deg_el = new_e.find(lambda t: fe._cls_match(t, 'position', 'degree', 'qualification'))
+                    fe._set_text(deg_el, item.get("degree", ""))
+                    det_el = new_e.find(lambda t: fe._cls_match(t, 'organization', 'institution', 'school', 'details', 'edu-details'))
+                    fe._set_text(det_el, item.get("details", ""))
+                    edu_section.append(new_e)
 
         # ── 7. Skills ─────────────────────────────────────────────────────────
         skills_data = data.get("skills", [])
-        if skills_data:
-            skills_container = fe._find_by_cls(soup, 'skills-grid', 'skills-list', 'skills-container', 'skill-tags', 'skills-wrapper', 'tech-stack', 'pills', 'tags')
-            if not skills_container:
-                hdr = soup.find(lambda t: fe._is_header_matching(t, 'skill'))
-                if hdr:
-                    skills_container = hdr.find_next(['div', 'ul', 'p'])
-
-            if skills_container:
-                item_tmpl = skills_container.find(lambda t: t.name in ['div', 'span', 'li'] and fe._cls_match(t, 'skill-tag', 'skill-item', 'skill-box', 'skill-badge', 'tag', 'skill-pill', 'pill', 'badge', 'skill-name'))
-                if item_tmpl:
-                    tmpl_clone = copy.copy(item_tmpl)
-                    item_classes = item_tmpl.get('class', [])
-                    for e in skills_container.find_all(class_=item_classes):
-                        e.decompose()
-                    for skill in skills_data:
-                        new_i = copy.copy(tmpl_clone)
-                        if new_i is None: continue
-                        label_el = new_i.find(lambda t: fe._cls_match(t, 'skill-label', 'skill-title', 'label', 'skill-name'))
-                        if label_el:
-                            fe._set_text(label_el, skill)
-                            for other in new_i.find_all(lambda t: fe._cls_match(t, 'skill-level', 'skill-fill', 'skill-bar', 'skill-value', 'value')):
-                                other.decompose()
-                        else:
-                            fe._set_text(new_i, skill)
-                        skills_container.append(new_i)
-                        skills_container.append(soup.new_string(" "))
-                else:
-                    skills_container.clear()
-                    for skill in skills_data:
-                        span = soup.new_tag('span', attrs={'class': 'skill-tag'})
-                        span.string = skill
-                        skills_container.append(span)
-                        skills_container.append(soup.new_string(" "))
+        skills_section = None
+        skills_container = fe._find_by_cls(soup, 'skills-grid', 'skills-list', 'skills-container', 'skill-tags', 'skills-wrapper', 'tech-stack', 'pills', 'tags')
+        if not skills_container:
+            hdr = soup.find(lambda t: fe._is_header_matching(t, 'skill'))
+            if hdr:
+                skills_section = hdr.find_parent(['section', 'article']) or hdr.parent
+                skills_container = hdr.find_next(['div', 'ul', 'p'])
+        if fe._hide_section_if_empty(soup, skills_section or skills_container, skills_data):
+            pass  # Section hidden
+        elif skills_data and skills_container:
+            item_tmpl = skills_container.find(lambda t: t.name in ['div', 'span', 'li'] and fe._cls_match(t, 'skill-tag', 'skill-item', 'skill-box', 'skill-badge', 'tag', 'skill-pill', 'pill', 'badge', 'skill-name'))
+            if item_tmpl:
+                tmpl_clone = copy.copy(item_tmpl)
+                item_classes = item_tmpl.get('class', [])
+                for e in skills_container.find_all(class_=item_classes):
+                    e.decompose()
+                for skill in skills_data:
+                    new_i = copy.copy(tmpl_clone)
+                    if new_i is None: continue
+                    label_el = new_i.find(lambda t: fe._cls_match(t, 'skill-label', 'skill-title', 'label', 'skill-name'))
+                    if label_el:
+                        fe._set_text(label_el, skill)
+                        for other in new_i.find_all(lambda t: fe._cls_match(t, 'skill-level', 'skill-fill', 'skill-bar', 'skill-value', 'value')):
+                            other.decompose()
+                    else:
+                        fe._set_text(new_i, skill)
+                    skills_container.append(new_i)
+                    skills_container.append(soup.new_string(" "))
+            else:
+                skills_container.clear()
+                for skill in skills_data:
+                    span = soup.new_tag('span', attrs={'class': 'skill-tag'})
+                    span.string = skill
+                    skills_container.append(span)
+                    skills_container.append(soup.new_string(" "))
 
         # ── 8. LLM Analysis / ATS Score ───────────────────────────────────────
         llm_data = data.get("llm_analysis")
