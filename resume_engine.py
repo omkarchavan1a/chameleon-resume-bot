@@ -26,6 +26,14 @@ class ResumeEngine:
         }
         
         lines = md_content.split('\n')
+        section_aliases = {
+            "summary": ["summary", "professional summary", "profile", "objective", "about"],
+            "skills": ["skills", "technical skills", "technical stack", "core competencies", "competencies", "tech stack"],
+            "experience": ["experience", "professional experience", "work experience", "employment", "work history"],
+            "education": ["education", "academic background", "academics"],
+            "projects": ["projects", "key projects", "selected projects", "project"],
+            "awards": ["awards", "certifications", "licenses", "achievements", "honors"]
+        }
         
         # Extract Name (usually first # header)
         for i, line in enumerate(lines):
@@ -44,6 +52,37 @@ class ResumeEngine:
                             elif 'linkedin' in p.lower(): data["contact"]["linkedin"] = p
                             elif 'github' in p.lower(): data["contact"]["github"] = p
                 break
+        
+        # Extract title + contact from intro lines (before first ## section)
+        intro_lines = []
+        for line in lines[1:]:
+            if line.startswith('## '):
+                break
+            if line.strip():
+                intro_lines.append(line.strip())
+        
+        if intro_lines and not data["title"]:
+            first_intro = intro_lines[0].strip('* ').strip()
+            if '@' not in first_intro and not re.search(r'\+?\d[\d\s\-()]{7,}', first_intro):
+                data["title"] = first_intro
+        
+        contact_blob = " | ".join(intro_lines)
+        if not data["contact"]["email"]:
+            email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', contact_blob)
+            if email_match:
+                data["contact"]["email"] = email_match.group(0)
+        if not data["contact"]["phone"]:
+            phone_match = re.search(r'(\+?\d[\d\s\-()]{7,}\d)', contact_blob)
+            if phone_match:
+                data["contact"]["phone"] = phone_match.group(1).strip()
+        if not data["contact"]["linkedin"]:
+            linkedin_match = re.search(r'(https?://[^\s|]*linkedin[^\s|]*|linkedin[^\s|]*)', contact_blob, re.IGNORECASE)
+            if linkedin_match:
+                data["contact"]["linkedin"] = linkedin_match.group(1).strip()
+        if not data["contact"]["github"]:
+            github_match = re.search(r'(https?://[^\s|]*github[^\s|]*|github[^\s|]*)', contact_blob, re.IGNORECASE)
+            if github_match:
+                data["contact"]["github"] = github_match.group(1).strip()
 
         # Split by sections
         sections = re.split(r'\n## ', md_content)
@@ -51,23 +90,53 @@ class ResumeEngine:
             lines = section.split('\n')
             header = lines[0].strip().lower()
             content = '\n'.join(lines[1:]).strip()
+            normalized_header = re.sub(r'[^a-z\s]', '', header).strip()
+            section_type = None
+            for key, aliases in section_aliases.items():
+                if any(alias in normalized_header for alias in aliases):
+                    section_type = key
+                    break
             
-            if 'summary' in header:
+            if section_type == "summary":
                 data["summary"] = content
-            elif 'skills' in header:
+            elif section_type == "skills":
                 # Extract bullet points or comma separated
                 if ',' in content and '\n' not in content:
                     data["skills"] = [s.strip() for s in content.split(',') if s.strip()]
                 else:
-                    data["skills"] = [re.sub(r'^[-*]\s*', '', l).strip() for l in content.split('\n') if l.strip()]
-            elif 'experience' in header:
-                exp_entries = re.split(r'\n### ', '\n' + content)
+                    parsed_skills = []
+                    for l in content.split('\n'):
+                        line = l.strip()
+                        if not line:
+                            continue
+                        line = re.sub(r'^[-*]\s*', '', line)
+                        line = re.sub(r'^\*\*[^:]+:\*\*\s*', '', line).strip()
+                        parts = [p.strip() for p in line.split(',') if p.strip()]
+                        if parts and len(parts) > 1:
+                            parsed_skills.extend(parts)
+                        elif line:
+                            parsed_skills.append(line)
+                    data["skills"] = parsed_skills
+            elif section_type == "experience":
+                exp_entries = re.split(r'\n### |\n\*\*', '\n' + content)
                 for entry in exp_entries:
                     if not entry.strip(): continue
                     entry_lines = entry.strip().split('\n')
-                    header_parts = entry_lines[0].split('|')
-                    role = header_parts[0].strip()
-                    company = header_parts[1].strip() if len(header_parts) > 1 else ""
+                    raw_header = entry_lines[0].strip('* ').strip()
+                    role = raw_header
+                    company = ""
+                    if '|' in raw_header:
+                        header_parts = [p.strip() for p in raw_header.split('|')]
+                        role = header_parts[0] if header_parts else raw_header
+                        company = header_parts[1] if len(header_parts) > 1 else ""
+                    elif ' at ' in raw_header.lower():
+                        at_split = re.split(r'\bat\b', raw_header, maxsplit=1, flags=re.IGNORECASE)
+                        role = at_split[0].strip() if at_split else raw_header
+                        company = at_split[1].strip() if len(at_split) > 1 else ""
+                    elif ' - ' in raw_header:
+                        dash_parts = [p.strip() for p in raw_header.split(' - ', 1)]
+                        role = dash_parts[0]
+                        company = dash_parts[1] if len(dash_parts) > 1 else ""
                     
                     date = ""
                     highlights = []
@@ -85,31 +154,31 @@ class ResumeEngine:
                         "date": date,
                         "highlights": highlights
                     })
-            elif 'education' in header:
-                edu_entries = re.split(r'\n### ', '\n' + content)
+            elif section_type == "education":
+                edu_entries = re.split(r'\n### |\n\*\*', '\n' + content)
                 for entry in edu_entries:
                     if not entry.strip(): continue
                     entry_lines = entry.strip().split('\n')
                     data["education"].append({
-                        "degree": entry_lines[0].strip(),
+                        "degree": entry_lines[0].strip('* ').strip(),
                         "details": '\n'.join(entry_lines[1:]).strip()
                     })
-            elif 'project' in header:
-                proj_entries = re.split(r'\n### ', '\n' + content)
+            elif section_type == "projects":
+                proj_entries = re.split(r'\n### |\n\*\*', '\n' + content)
                 for entry in proj_entries:
                     if not entry.strip(): continue
                     entry_lines = entry.strip().split('\n')
                     data["projects"].append({
-                        "name": entry_lines[0].strip(),
+                        "name": entry_lines[0].strip('* ').strip(),
                         "details": '\n'.join(entry_lines[1:]).strip()
                     })
-            elif 'award' in header or 'certification' in header:
-                award_entries = re.split(r'\n### ', '\n' + content)
+            elif section_type == "awards":
+                award_entries = re.split(r'\n### |\n\*\*', '\n' + content)
                 for entry in award_entries:
                     if not entry.strip(): continue
                     entry_lines = entry.strip().split('\n')
                     data["awards"].append({
-                        "name": entry_lines[0].strip(),
+                        "name": entry_lines[0].strip('* ').strip(),
                         "details": '\n'.join(entry_lines[1:]).strip()
                     })
                     
