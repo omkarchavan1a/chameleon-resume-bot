@@ -32,7 +32,7 @@ class ResumeEngine:
             "experience": ["experience", "professional experience", "work experience", "employment", "work history"],
             "education": ["education", "academic background", "academics"],
             "projects": ["projects", "key projects", "selected projects", "project"],
-            "awards": ["awards", "certifications", "licenses", "achievements", "honors"]
+            "awards": ["awards", "certifications", "licenses", "achievements", "honors", "quantifiable impact"]
         }
         
         # Extract Name (usually first # header)
@@ -168,19 +168,30 @@ class ResumeEngine:
                 for entry in proj_entries:
                     if not entry.strip(): continue
                     entry_lines = entry.strip().split('\n')
+                    title = entry_lines[0].strip('* ').strip()
+                    description = ""
+                    highlights = []
+                    for l in entry_lines[1:]:
+                        l = l.strip()
+                        if not l: continue
+                        if l.startswith('-') or l.startswith('*'):
+                            highlights.append(re.sub(r'^[-*]\s*', '', l))
+                        else:
+                            description += " " + l
                     data["projects"].append({
-                        "name": entry_lines[0].strip('* ').strip(),
-                        "details": '\n'.join(entry_lines[1:]).strip()
+                        "title": title,
+                        "description": description.strip(),
+                        "highlights": highlights
                     })
             elif section_type == "awards":
-                award_entries = re.split(r'\n### |\n\*\*', '\n' + content)
-                for entry in award_entries:
-                    if not entry.strip(): continue
-                    entry_lines = entry.strip().split('\n')
-                    data["awards"].append({
-                        "name": entry_lines[0].strip('* ').strip(),
-                        "details": '\n'.join(entry_lines[1:]).strip()
-                    })
+                # Parse achievements/quantifiable impact as list of strings
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if not line: continue
+                    if line.startswith('-') or line.startswith('*'):
+                        data["awards"].append(re.sub(r'^[-*]\s*', '', line))
+                    elif line and not line.startswith('#'):
+                        data["awards"].append(line)
                     
         return data
 
