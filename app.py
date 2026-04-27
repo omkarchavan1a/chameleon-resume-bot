@@ -262,7 +262,8 @@ def generate_html_pdf(markdown_content, template_path=None, llm_data=None):
             
         engine = ResumeEngine()
         data = engine.parse_markdown(markdown_content)
-        # Merge LLM data if provided
+        # Explicitly ensure NO LLM data in PDF
+        data.pop("llm_analysis", None)
         if llm_data:
             data["llm_analysis"] = llm_data
         html_rendered = engine.render_html(template_path, data)
