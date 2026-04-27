@@ -317,6 +317,58 @@ class ResumeEngine:
                             fe._set_text(desc_el, ' '.join(item.get("highlights", [])))
                         exp_section.append(new_e)
 
+        # ── 5b. Projects ──────────────────────────────────────────────────────
+        proj_data = data.get("projects", [])
+        if proj_data:
+            proj_section = fe._find_by_cls(soup, 'projects-list', 'projects-container')
+            if not proj_section:
+                hdr = soup.find(lambda t: fe._is_header_matching(t, 'project', 'key projects'))
+                if hdr:
+                    proj_section = hdr.find_parent(['section', 'article']) or hdr.parent
+
+            if proj_section:
+                entry_tmpl = proj_section.find(lambda t: fe._cls_match(t, 'entry', 'project-item', 'project-block'))
+                if entry_tmpl:
+                    tmpl_clone = copy.copy(entry_tmpl)
+                    entry_classes = entry_tmpl.get('class', [])
+                    for e in proj_section.find_all(class_=entry_classes):
+                        e.decompose()
+                    for item in proj_data:
+                        new_e = copy.copy(tmpl_clone)
+                        if new_e is None: continue
+                        title_el = new_e.find(lambda t: fe._cls_match(t, 'position', 'project-title', 'project-name'))
+                        fe._set_text(title_el, item.get("title", ""))
+                        desc_el = new_e.find(lambda t: fe._cls_match(t, 'organization', 'project-desc'))
+                        fe._set_text(desc_el, item.get("description", ""))
+                        ul = new_e.find('ul')
+                        if ul:
+                            ul.clear()
+                            for hl in item.get("highlights", []):
+                                li = soup.new_tag('li')
+                                li.string = hl
+                                ul.append(li)
+                        proj_section.append(new_e)
+
+        # ── 5c. Achievements ──────────────────────────────────────────────────
+        awards_data = data.get("awards", [])
+        if awards_data:
+            awards_section = fe._find_by_cls(soup, 'achievements-list', 'awards-container')
+            if not awards_section:
+                hdr = soup.find(lambda t: fe._is_header_matching(t, 'achievement', 'achievements', 'awards'))
+                if hdr:
+                    awards_section = hdr.find_parent(['section', 'article']) or hdr.parent
+            if awards_section:
+                ul = awards_section.find('ul')
+                if ul:
+                    ul.clear()
+                    for award in awards_data:
+                        li = soup.new_tag('li')
+                        li.string = award
+                        ul.append(li)
+                else:
+                    desc_el = awards_section.find(lambda t: fe._cls_match(t, 'description', 'entry-description'))
+                    fe._set_text(desc_el, '\n'.join(awards_data))
+
         # ── 6. Education ──────────────────────────────────────────────────────
         edu_data = data.get("education", [])
         if edu_data:
