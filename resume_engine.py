@@ -415,6 +415,7 @@ class ResumeEngine:
     @staticmethod
     def _inject_llm_analysis_section(soup, llm_data):
         """Inject a new LLM analysis section at the end of the document."""
+        candidate_name = llm_data.get("candidate_name", "Candidate") if llm_data else "Candidate"
         ats_score = llm_data.get("ats_score", 0) if llm_data else 0
         keyword_match = llm_data.get("keyword_match", 0) if llm_data else 0
         summary = llm_data.get("summary", "") if llm_data else ""
@@ -425,7 +426,10 @@ class ResumeEngine:
         # Create analysis section HTML
         analysis_html = f"""
         <section class="llm-analysis-section" style="margin-top: 40px; padding: 25px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; border-left: 4px solid #3b82f6;">
-            <h3 style="font-family: 'Space Mono', monospace; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #1e293b; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #cbd5e1;">
+            <h2 style="font-family: 'Space Mono', monospace; font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 5px;">
+                {candidate_name}
+            </h2>
+            <h3 style="font-family: 'Space Mono', monospace; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #64748b; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #cbd5e1;">
                 AI Analysis & ATS Score
             </h3>
 

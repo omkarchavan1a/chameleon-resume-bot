@@ -425,15 +425,16 @@ Job Description:
 {job_description if job_description.strip() else "Not provided"}
 
 Provide a JSON response with:
-1. ats_score (number 0-100): Estimated ATS compatibility score
-2. keyword_match (number 0-100): Keyword match percentage with job description
-3. strengths (array): Top 3 strengths of this resume
-4. improvements (array): Top 3 specific improvements to make
-5. missing_keywords (array): Important keywords missing from the resume
-6. summary (string): Brief 2-sentence analysis summary
+1. candidate_name (string): The candidate's full name from the resume
+2. ats_score (number 0-100): Estimated ATS compatibility score
+3. keyword_match (number 0-100): Keyword match percentage with job description
+4. strengths (array): Top 3 strengths of this resume
+5. improvements (array): Top 3 specific improvements to make
+6. missing_keywords (array): Important keywords missing from the resume
+7. summary (string): Brief 2-sentence analysis summary
 
 Output ONLY valid JSON in this format:
-{{"ats_score": 85, "keyword_match": 78, "strengths": [...], "improvements": [...], "missing_keywords": [...], "summary": "..."}}
+{{"candidate_name": "John Doe", "ats_score": 85, "keyword_match": 78, "strengths": [...], "improvements": [...], "missing_keywords": [...], "summary": "..."}}
 """
     try:
         res = client.chat.completions.create(
@@ -455,6 +456,7 @@ Output ONLY valid JSON in this format:
     except Exception as e:
         # Return default analysis if generation fails
         return {
+            "candidate_name": "Candidate",
             "ats_score": 75,
             "keyword_match": 70,
             "strengths": ["Well-structured format", "Clear experience descriptions", "Professional presentation"],
@@ -887,6 +889,8 @@ else:
                     st.markdown("### 🤖 AI Analysis & ATS Score")
                     llm_data = st.session_state.get('llm_analysis')
                     if llm_data:
+                        candidate_name = llm_data.get('candidate_name', 'Candidate')
+                        st.markdown(f"## 👤 {candidate_name}")
                         col1, col2 = st.columns(2)
                         ats_score = llm_data.get('ats_score', 0)
                         keyword_match = llm_data.get('keyword_match', 0)
