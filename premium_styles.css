@@ -207,3 +207,41 @@ div[data-testid="stHorizontalBlock"] {
   border: none !important;
   box-shadow: none !important;
 }
+
+/* Form Labels and Text - Ensure visibility on dark background */
+label[data-testid="stWidgetLabel"] {
+  color: #f0f6ff !important;
+  font-weight: 500 !important;
+}
+
+/* Form helper text */
+.stMarkdown p {
+  color: #94a3b8 !important;
+}
+
+/* Ensure all headings are visible */
+h1, h2, h3, h4, h5, h6 {
+  color: #f0f6ff !important;
+}
+
+/* Form container text */
+form[data-testid="stForm"] .stMarkdown {
+  color: #f0f6ff !important;
+}
+
+/* Input placeholder text */
+::placeholder {
+  color: rgba(255,255,255,0.4) !important;
+}
+
+/* Subtitle text */
+p {
+  color: #cbd5e1 !important;
+}
+
+/* Success/Error messages on dark bg */
+.stSuccess, .stError, .stWarning, .stInfo {
+  background: rgba(255,255,255,0.08) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 12px !important;
+}
