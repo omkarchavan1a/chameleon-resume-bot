@@ -389,11 +389,12 @@ with st.sidebar:
 # ─── Prompts and Logic ────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are an Expert ATS Specialist and Professional Resume Writer.
 Transform the user's "Master Experience" into a tailored, Chameleon-style resume:
-1. Position Pivot: Highlight only relevant tools/experiences.
-2. City Adaptation: Update contact header and language tone.
-3. Keyword Optimization: Integrate JD keywords naturally.
-4. Quantifiable Impact: Use 'Accomplished [X] by [Y] via [Z]' format.
-5. Format: Clean Markdown only.
+1. Start with candidate name as: # [Full Name]
+2. Position Pivot: Highlight only relevant tools/experiences.
+3. City Adaptation: Update contact header and language tone.
+4. Keyword Optimization: Integrate JD keywords naturally.
+5. Quantifiable Impact: Use 'Accomplished [X] by [Y] via [Z]' format.
+6. Format: Clean Markdown only.
 """
 
 def generate_resume(master_data, target_position, target_city, job_description):
@@ -403,7 +404,12 @@ Target Position: {target_position}
 Target City: {target_city}
 Master Data: {master_data}
 {jd_section}
-Output ONLY clean Markdown resume.
+
+Instructions:
+- Extract the candidate's full name from the Master Data
+- Start the resume with: # [Full Name]
+- Include title and contact info on the next line
+- Output ONLY clean Markdown resume.
 """
     return client.chat.completions.create(
         model=MODEL,
@@ -777,6 +783,8 @@ else:
                         try:
                             engine = ResumeEngine()
                             data = engine.parse_markdown(st.session_state.generated_resume)
+                            # Add LLM analysis to data for website preview only
+                            data["llm_analysis"] = st.session_state.get('llm_analysis')
                             t_id = st.session_state.get('selected_template', 'Minimalist')
                             t_path = HTML_TEMPLATES.get(t_id)
                             html_rendered = engine.render_html(t_path, data)
@@ -792,10 +800,11 @@ else:
                             act_col1, act_col2 = st.columns(2)
                             with act_col1:
                                 if PDF_METHOD:
+                                    # PDF without LLM analysis (website only)
                                     pdf_bytes = generate_html_pdf(
                                         st.session_state.generated_resume, 
                                         t_path, 
-                                        st.session_state.get('llm_analysis')
+                                        None  # No LLM analysis in PDF
                                     )
                                     if pdf_bytes:
                                         st.download_button("📥 Download PDF", pdf_bytes, file_name=f"resume_{t_id.lower().replace(' ', '_')}.pdf", mime="application/pdf", use_container_width=True)
